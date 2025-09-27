@@ -1,0 +1,37 @@
+﻿graph TD
+    UI[Clients & Automation]
+    API[FastAPI Layer]
+    Auth[JWT Auth & RBAC]
+    Domain[Domain Services]
+    Calculations[Financial Calculations Engine]
+    Audit[Audit Middleware & Service]
+    Persistence[SQLAlchemy ORM]
+    DB[(PostgreSQL)]
+    Alembic[Alembic Migrations]
+    Scheduler[Local Jobs / Cron]
+    Observability[Observability Stack]
+    Metrics[Prometheus Client]
+    Logging[Structured JSON Logging]
+    AuditTable[Append-only audit_logs]
+
+    UI -->|HTTP| API
+    API --> Auth
+    API --> Domain
+    Auth --> Domain
+    Domain --> Calculations
+    Domain --> Persistence
+    Persistence --> DB
+    Alembic --> DB
+    Audit --> AuditTable
+    API --> Audit
+    Domain --> Audit
+    Scheduler --> Domain
+    Scheduler --> Audit
+    Observability --> Metrics
+    Observability --> Logging
+    API --> Metrics
+    API --> Logging
+    Domain --> Metrics
+    Domain --> Logging
+    DB --> AuditTable
+    AuditTable -. read-only APIs .-> UI

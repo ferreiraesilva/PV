@@ -1,0 +1,17 @@
+﻿fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg2-binary
+pydantic[email]
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+python-dotenv
+loguru
+prometheus-client
+httpx
+pytest
+pytest-cov
+ruff
+black

@@ -1,0 +1,924 @@
+﻿openapi: 3.0.3
+info:
+  title: safv API
+  version: 0.1.0
+  description: |
+    safv (Financial Sales Analysis System) centralizes financial simulations, receivables valuation,
+    benchmarking, recommendations, and mandatory auditing within a FastAPI monolith. Every authenticated
+    action produces an append-only audit record. This OpenAPI contract covers the MVP scope.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development
+tags:
+  - name: Health
+    description: Service health and observability
+  - name: Auth
+    description: Authentication and tokens
+  - name: Users
+    description: User management and RBAC
+  - name: Roles
+    description: Roles and permissions
+  - name: Simulations
+    description: Payment plan simulations (PV, PMT, FV)
+  - name: Valuations
+    description: Receivables portfolio valuation (VPB/VPL)
+  - name: Benchmarking
+    description: Market benchmarking ingestion and analytics
+  - name: Recommendations
+    description: Recommendation runs and AI placeholders
+  - name: Audit
+    description: Immutable audit log queries
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Service health probe
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service health snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /metrics:
+    get:
+      tags: [Health]
+      summary: Prometheus metrics feed
+      operationId: getMetrics
+      responses:
+        "200":
+          description: Prometheus exposition format
+          content:
+            text/plain:
+              schema:
+                type: string
+  /t/{tenantId}/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with email and password
+      operationId: tenantLogin
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        "200":
+          description: Access and refresh tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      operationId: tenantRefresh
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        "200":
+          description: Fresh access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke refresh token
+      operationId: tenantLogout
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        "204": { description: Session invalidated }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/users:
+    get:
+      tags: [Users]
+      summary: List tenant users
+      operationId: listTenantUsers
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      responses:
+        "200":
+          description: Users for the tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Users]
+      summary: Create tenant user
+      operationId: createTenantUser
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/users/{userId}:
+    get:
+      tags: [Users]
+      summary: Retrieve user by id
+      operationId: getTenantUser
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Users]
+      summary: Update user attributes
+      operationId: patchTenantUser
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPatch'
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+  /t/{tenantId}/roles:
+    get:
+      tags: [Roles]
+      summary: List tenant roles
+      operationId: listTenantRoles
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      responses:
+        "200":
+          description: Roles for the tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Roles]
+      summary: Create tenant role
+      operationId: createTenantRole
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleCreate'
+      responses:
+        "201":
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/roles/{roleId}:
+    get:
+      tags: [Roles]
+      summary: Retrieve role by id
+      operationId: getTenantRole
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/RoleIdPath'
+      responses:
+        "200":
+          description: Role detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Roles]
+      summary: Update role metadata
+      operationId: patchTenantRole
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/RoleIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolePatch'
+      responses:
+        "200":
+          description: Updated role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+  /t/{tenantId}/roles/{roleId}/permissions:
+    put:
+      tags: [Roles, Permissions]
+      summary: Replace permissions for role
+      operationId: setTenantRolePermissions
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/RoleIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissions]
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Updated permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roleId:
+                    type: string
+                    format: uuid
+                  permissions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Permission'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+  /t/{tenantId}/permissions:
+    get:
+      tags: [Roles]
+      summary: List permission catalog
+      operationId: listTenantPermissions
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      responses:
+        "200":
+          description: Permission list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Permission'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/simulations:
+    post:
+      tags: [Simulations]
+      summary: Create simulation request
+      operationId: createSimulation
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationCreate'
+      responses:
+        "201":
+          description: Simulation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationRequest'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/simulations/{simulationId}:
+    get:
+      tags: [Simulations]
+      summary: Retrieve simulation detail
+      operationId: getSimulation
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/SimulationIdPath'
+      responses:
+        "200":
+          description: Simulation detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationRequest'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+  /t/{tenantId}/simulations/{simulationId}/plans:
+    post:
+      tags: [Simulations]
+      summary: Create plan for simulation
+      operationId: createSimulationPlan
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/SimulationIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationPlanCreate'
+      responses:
+        "201":
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationPlan'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [Simulations]
+      summary: List plans for simulation
+      operationId: listSimulationPlans
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/SimulationIdPath'
+      responses:
+        "200":
+          description: Plans for simulation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SimulationPlan'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+  /t/{tenantId}/simulations/{simulationId}/plans/{planId}/results:
+    post:
+      tags: [Simulations]
+      summary: Trigger plan calculation
+      operationId: executeSimulationPlan
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/SimulationIdPath'
+        - $ref: '#/components/parameters/PlanIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationExecution'
+      responses:
+        "202":
+          description: Calculation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculationJobStatus'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [Simulations]
+      summary: Retrieve plan calculation result
+      operationId: getSimulationPlanResult
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/SimulationIdPath'
+        - $ref: '#/components/parameters/PlanIdPath'
+      responses:
+        "200":
+          description: Calculation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResult'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+  /t/{tenantId}/valuations/snapshots:
+    post:
+      tags: [Valuations]
+      summary: Create portfolio snapshot
+      operationId: createSnapshot
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioSnapshotCreate'
+      responses:
+        "201":
+          description: Snapshot created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioSnapshot'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/valuations/snapshots/{snapshotId}/results:
+    post:
+      tags: [Valuations]
+      summary: Trigger valuation scenarios
+      operationId: executeValuation
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/SnapshotIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioValuation'
+      responses:
+        "202":
+          description: Valuation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculationJobStatus'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [Valuations]
+      summary: Retrieve valuation results
+      operationId: listValuationResults
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/SnapshotIdPath'
+        - in: query
+          name: scenario
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Valuation results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PortfolioResult'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+  /t/{tenantId}/recommendations/runs:
+    post:
+      tags: [Recommendations]
+      summary: Start recommendation run (AI placeholder)
+      operationId: createRecommendationRun
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRunCreate'
+      responses:
+        "202":
+          description: Run accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculationJobStatus'
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /t/{tenantId}/recommendations/runs/{runId}:
+    get:
+      tags: [Recommendations]
+      summary: Retrieve recommendation run with items
+      operationId: getRecommendationRun
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/RecommendationRunIdPath'
+      responses:
+        "200":
+          description: Recommendation run detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationRun'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "404": { $ref: '#/components/responses/NotFound' }
+  /t/{tenantId}/audit/logs:
+    get:
+      tags: [Audit]
+      summary: Query append-only audit logs
+      operationId: listAuditLogs
+      parameters:
+        - $ref: '#/components/parameters/TenantIdPath'
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: requestId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: userId
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Audit records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogEntry'
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TenantIdPath: { name: tenantId, in: path, required: true, schema: { type: string } }
+    UserIdPath: { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+    RoleIdPath: { name: roleId, in: path, required: true, schema: { type: string, format: uuid } }
+    SimulationIdPath: { name: simulationId, in: path, required: true, schema: { type: string, format: uuid } }
+    PlanIdPath: { name: planId, in: path, required: true, schema: { type: string, format: uuid } }
+    SnapshotIdPath: { name: snapshotId, in: path, required: true, schema: { type: string, format: uuid } }
+    BenchmarkBatchIdPath: { name: batchId, in: path, required: true, schema: { type: string, format: uuid } }
+    RecommendationRunIdPath: { name: runId, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    BadRequest: { description: Invalid request payload or parameters, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    Unauthorized: { description: Authentication required or failed, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    Forbidden: { description: Caller lacks permission, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    NotFound: { description: Resource not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status, timestamp, service]
+      properties:
+        status: { type: string }
+        timestamp: { type: string, format: date-time }
+        service: { type: string }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    TokenPair:
+      type: object
+      required: [access_token, refresh_token, expires_in]
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer }
+    TokenRefresh:
+      type: object
+      required: [access_token, expires_in]
+      properties:
+        access_token: { type: string }
+        expires_in: { type: integer }
+    Permission:
+      type: object
+      required: [id, code]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        description: { type: string }
+    Role:
+      type: object
+      required: [id, tenantId, name, isDefault, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        isDefault: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    RoleCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        isDefault: { type: boolean, default: false }
+        permissions: { type: array, items: { type: string } }
+    RolePatch:
+      type: object
+      properties:
+        description: { type: string }
+        isDefault: { type: boolean }
+    User:
+      type: object
+      required: [id, tenantId, email, roles, isActive, isSuperuser, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        roles: { type: array, items: { type: string } }
+        isActive: { type: boolean }
+        isSuperuser: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    UserCreate:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        fullName: { type: string }
+        password: { type: string, format: password }
+        roles: { type: array, items: { type: string } }
+    UserPatch:
+      type: object
+      properties:
+        fullName: { type: string }
+        password: { type: string, format: password }
+        isActive: { type: boolean }
+        roles: { type: array, items: { type: string } }
+    SimulationRequest:
+      type: object
+      required: [id, tenantId, name, baseAmount, valuationDate, currency, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        baseAmount: { type: number, format: double }
+        valuationDate: { type: string, format: date }
+        currency: { type: string }
+        status: { type: string }
+        metadata: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+    SimulationCreate:
+      type: object
+      required: [name, baseAmount, valuationDate]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        baseAmount: { type: number, format: double }
+        valuationDate: { type: string, format: date }
+        currency: { type: string, default: BRL }
+        metadata: { type: object, additionalProperties: true }
+    SimulationPlan:
+      type: object
+      required: [id, simulationId, name, discountRate, rateType]
+      properties:
+        id: { type: string, format: uuid }
+        simulationId: { type: string, format: uuid }
+        name: { type: string }
+        discountRate: { type: number, format: double }
+        rateType: { type: string }
+        installments:
+          type: array
+          items:
+            type: object
+            required: [sequence, dueDate, principalAmount]
+            properties:
+              sequence: { type: integer }
+              dueDate: { type: string, format: date }
+              principalAmount: { type: number, format: double }
+              isAdjustable: { type: boolean }
+    SimulationPlanCreate:
+      type: object
+      required: [name, discountRate, rateType, installments]
+      properties:
+        name: { type: string }
+        discountRate: { type: number, format: double }
+        rateType: { type: string }
+        installments:
+          type: array
+          items:
+            type: object
+            required: [sequence, dueDate, principalAmount]
+            properties:
+              sequence: { type: integer }
+              dueDate: { type: string, format: date }
+              principalAmount: { type: number, format: double }
+              isAdjustable: { type: boolean }
+    SimulationExecution:
+      type: object
+      required: [assumptions]
+      properties:
+        assumptions: { type: object, additionalProperties: true }
+    SimulationResult:
+      type: object
+      required: [planId, presentValue, generatedAt]
+      properties:
+        planId: { type: string, format: uuid }
+        presentValue: { type: number, format: double }
+        averageInstallment: { type: number, format: double }
+        meanTermMonths: { type: number, format: double }
+        futureValue: { type: number, format: double }
+        generatedAt: { type: string, format: date-time }
+        summary: { type: object, additionalProperties: true }
+    PortfolioSnapshot:
+      type: object
+      required: [id, tenantId, name, valuationDate, discountRate, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        valuationDate: { type: string, format: date }
+        discountRate: { type: number, format: double }
+        status: { type: string }
+        metadata: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+    PortfolioSnapshotCreate:
+      type: object
+      required: [name, valuationDate, discountRate]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        valuationDate: { type: string, format: date }
+        discountRate: { type: number, format: double }
+        metadata: { type: object, additionalProperties: true }
+    PortfolioValuation:
+      type: object
+      required: [scenarios]
+      properties:
+        scenarios:
+          type: array
+          items:
+            type: object
+            required: [code, discountRate]
+            properties:
+              code: { type: string }
+              discountRate: { type: number, format: double }
+              defaultMultiplier: { type: number, format: double, default: 1.0 }
+    PortfolioResult:
+      type: object
+      required: [snapshotId, scenario, grossPresentValue, netPresentValue, generatedAt]
+      properties:
+        snapshotId: { type: string, format: uuid }
+        scenario: { type: string }
+        grossPresentValue: { type: number, format: double }
+        netPresentValue: { type: number, format: double }
+        expectedLosses: { type: number, format: double }
+        pricingValue: { type: number, format: double }
+        generatedAt: { type: string, format: date-time }
+        metrics: { type: object, additionalProperties: true }
+    BenchmarkBatch:
+      type: object
+      required: [id, tenantId, referenceMonth, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        referenceMonth: { type: string, format: date }
+        status: { type: string }
+        metadata: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+    BenchmarkBatchCreate:
+      type: object
+      required: [referenceMonth]
+      properties:
+        referenceMonth: { type: string, format: date }
+        metadata: { type: object, additionalProperties: true }
+    BenchmarkDatasetPayload:
+      type: object
+      required: [records]
+      properties:
+        records:
+          type: array
+          items:
+            type: object
+            required: [metricCode]
+            properties:
+              metricCode: { type: string }
+              segment: { type: string }
+              region: { type: string }
+              valueNumeric: { type: number, format: double }
+              valueJson: { type: object, additionalProperties: true }
+        metadata: { type: object, additionalProperties: true }
+    RecommendationRun:
+      type: object
+      required: [id, tenantId, runType, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        snapshotId: { type: string, format: uuid, nullable: true }
+        simulationId: { type: string, format: uuid, nullable: true }
+        runType: { type: string }
+        status: { type: string }
+        notes: { type: string }
+        items: { type: array, items: { type: object, properties: { title: { type: string }, description: { type: string }, priority: { type: string } } } }
+        createdAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, nullable: true }
+    RecommendationRunCreate:
+      type: object
+      required: [runType]
+      properties:
+        runType: { type: string }
+        snapshotId: { type: string, format: uuid, nullable: true }
+        simulationId: { type: string, format: uuid, nullable: true }
+        parameters: { type: object, additionalProperties: true }
+    AuditLogEntry:
+      type: object
+      required: [id, occurredAt, requestId, tenantId, method, endpoint, statusCode]
+      properties:
+        id: { type: integer, format: int64 }
+        occurredAt: { type: string, format: date-time }
+        requestId: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        userId: { type: string, format: uuid, nullable: true }
+        method: { type: string }
+        endpoint: { type: string }
+        statusCode: { type: integer }
+        payloadIn: { type: object, additionalProperties: true }
+        payloadOut: { type: object, additionalProperties: true }
+        resourceType: { type: string }
+        resourceId: { type: string }
+        diffs: { type: object, additionalProperties: true }
+    CalculationJobStatus:
+      type: object
+      required: [jobId, status, submittedAt]
+      properties:
+        jobId: { type: string }
+        status: { type: string, enum: [queued, running, completed, failed] }
+        submittedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, nullable: true }
+        message: { type: string }
+

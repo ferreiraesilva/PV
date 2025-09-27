@@ -1,0 +1,161 @@
+
+Documento Técnico-Funcional – SaaS de Inteligência em Fluxos de Pagamento e Recebíveis
+
+1. Introdução
+1.1 Objetivo
+Descrever, em nível funcional e técnico, o sistema SaaS proposto, incluindo suas funcionalidades principais, cálculos envolvidos, integrações, fluxos de dados e diferenciais. Este documento servirá de base para:
+- Estimativa de esforço e custo de desenvolvimento.
+- Planejamento de roadmap técnico.
+- Avaliação de complexidade de cada módulo.
+- Definição futura de valuation.
+
+1.2 Escopo
+O sistema será entregue como SaaS (Software as a Service), rodando em nuvem, acessível via interface web e APIs. O foco inicial é atender empresas que operam vendas parceladas e acumulam recebíveis.
+
+1.3 Público-Alvo
+- Incorporadoras e construtoras
+- Concessionárias de veículos
+- Indústrias com vendas parceladas
+- Empresas de serviços recorrentes
+- Fundos de investimento, securitizadoras e bancos
+
+2. Visão Geral do Sistema
+O sistema é composto por quatro grandes blocos funcionais:
+1. Simulação de Planos de Pagamento (Futuro)
+2. Valoração de Carteira de Recebíveis (Presente + Passado)
+3. Benchmarking de Mercado (Comparativo)
+4. IA Preditiva e Recomendações (Prescritivo)
+
+Cada funcionalidade pode ser usada isoladamente, mas todas compartilham a mesma base de dados e motor de cálculos.
+
+3. Funcionalidade 1 – Simulação de Planos de Pagamento
+3.1 Descrição
+Permite cadastrar diferentes propostas de pagamento para um mesmo valor total, aplicando índices de correção, taxas customizadas e regras específicas de atualização. O sistema calcula o Valor Presente (PV) de cada plano e apresenta um ranking comparativo.
+
+3.2 Funcionalidades detalhadas
+- Cadastro de múltiplos planos de pagamento por proposta
+- Configuração de parcelas: valor, periodicidade, data, se sofre ou não atualização
+- Configuração de índices de correção: IGPM, INCC, CDI, SELIC, taxa livre
+- Possibilidade de combinar índices (ex.: INCC + 1%)
+- Cálculo de PV com base nos parâmetros
+- Ranking automático (melhor PV → pior PV)
+- Indicadores complementares:
+  - Prazo Médio de Recebimento (PMR)
+  - Valor Médio de Parcela (VMP)
+- Relatórios exportáveis (PDF, Excel)
+- Visualização gráfica
+
+3.3 Entradas
+- Valor total
+- Estrutura de parcelas
+- Índice ou taxa de correção
+
+3.4 Saídas
+- PV por plano
+- Ranking comparativo
+- Relatórios e gráficos
+
+3.5 Complexidade Técnica
+- Motor matemático para PV, PMR, VMP
+- Biblioteca de índices econômicos (API externa ou parametrização manual)
+- UI para cadastro e simulação de planos
+
+4. Funcionalidade 2 – Valoração de Carteira de Recebíveis
+4.1 Descrição
+Analisa a carteira atual de recebíveis, considerando histórico de vendas, pagamentos, atrasos e cancelamentos. Calcula o valor presente da carteira em diferentes cenários de risco e estima o valor de venda da carteira.
+
+4.2 Funcionalidades detalhadas
+- Importação de histórico (vendas, recebimentos, atrasos, cancelamentos)
+- Estruturação da carteira futura (datas e valores a receber)
+- Cálculo do Valor Presente Bruto (VPB)
+- Cálculo de perdas por inadimplência (probabilidade histórica)
+- Cálculo de perdas por cancelamento (probabilidade histórica)
+- Determinação do Valor Presente Líquido (VPL)
+- Aplicação de taxa de desconto → Preço de Venda da Carteira
+- Simulações de cenários (otimista, realista, conservador)
+- Relatórios detalhados e gráficos
+
+4.3 Entradas
+- Histórico de contratos
+- Projeção futura da carteira
+- Taxa de desconto de mercado
+
+4.4 Saídas
+- VPB, VPL, preço de venda da carteira
+- Indicadores: % inadimplência, % cancelamento, prazo médio, TIR, payback
+
+4.5 Complexidade Técnica
+- Motor de cálculos de risco e ajuste de PV
+- Modelagem estatística básica
+- Importação de dados via planilhas/API ERP
+
+5. Funcionalidade 3 – Benchmarking de Mercado
+5.1 Descrição
+Agrega os dados de todos os clientes do SaaS, de forma anônima e agregada, para gerar comparações de performance. O cliente pode filtrar por região, segmento ou porte e ver como se posiciona em relação ao mercado.
+
+5.2 Funcionalidades detalhadas
+- Base central de benchmarking (dados anonimizados)
+- Filtros de comparação: região, segmento, porte
+- Indicadores comparativos:
+  - VP Bruto médio
+  - Inadimplência média
+  - Cancelamento médio
+  - Prazo médio
+  - Preço médio de venda de carteiras
+- Dashboards de comparação
+- Relatórios comparativos com insights automáticos
+
+5.3 Entradas
+- Dados processados das Funcionalidades 1 e 2
+
+5.4 Saídas
+- Dashboards comparativos
+- Relatórios de benchmarking
+- Insights automáticos
+
+5.5 Complexidade Técnica
+- Armazenamento seguro de dados agregados
+- Mecanismos de anonimização
+- Motor estatístico
+
+6. Funcionalidade 4 – IA Preditiva e Recomendações
+6.1 Descrição
+A partir da base de dados enriquecida, aplica modelos de IA para prever inadimplência, cancelamentos e oportunidades de ganho. O sistema gera recomendações prescritivas.
+
+6.2 Funcionalidades detalhadas
+- Modelos de Machine Learning:
+  - Classificação (inadimplência e cancelamento)
+  - Regressão (PV ajustado)
+  - Clustering (agrupamentos de clientes)
+- Recomendações automáticas
+- Painel de “Oportunidades Detectadas”
+- Simulações sugeridas pela IA
+
+6.3 Entradas
+- Base histórica do cliente
+- Dados de benchmarking
+
+6.4 Saídas
+- Insights preditivos
+- Recomendações prescritivas
+
+6.5 Complexidade Técnica
+- Treinamento e manutenção de modelos de ML
+- Pipeline de dados limpos
+- Infraestrutura escalável para simulações
+
+7. Requisitos Técnicos Gerais
+- SaaS multi-tenant
+- Frontend web responsivo (React/Angular/Vue)
+- Backend APIs REST/GraphQL
+- Motor de cálculos financeiros dedicado
+- Integração com ERPs/CRMs
+- Relatórios em PDF/Excel
+- Autenticação e autorização por níveis
+- Cloud-native (GCP/AWS/Azure)
+
+8. Roadmap Técnico
+- Fase 1 (MVP): Funcionalidade 1 – simulação de planos
+- Fase 2: Funcionalidade 2 – valoração de carteira
+- Fase 3: Funcionalidade 3 – benchmarking
+- Fase 4: Funcionalidade 4 – IA preditiva

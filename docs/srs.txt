@@ -1,0 +1,42 @@
+
+SRS – Software Requirements Specification – SaaS de Inteligência em Fluxos de Pagamento e Recebíveis
+
+1. Introdução
+1.1 Propósito
+Fornecer especificações completas de software, descrevendo requisitos funcionais e não funcionais do sistema.
+
+1.2 Escopo
+Sistema SaaS para simulação de planos de pagamento, valoração de carteiras, benchmarking e recomendações preditivas.
+
+2. Descrição Geral
+2.1 Perspectiva do Produto
+Aplicação cloud-native com frontend web, backend API e motor de cálculos financeiros.
+
+2.2 Funções do Sistema
+- Simular planos de pagamento e calcular valor presente.
+- Avaliar carteiras de recebíveis considerando riscos.
+- Comparar métricas com dados agregados do mercado.
+- Oferecer recomendações preditivas com IA.
+
+2.3 Usuários do Sistema
+- Analistas financeiros, gestores de vendas, executivos de crédito, investidores.
+
+3. Requisitos Funcionais
+- RF1: O sistema deve permitir cadastrar múltiplos planos de pagamento.
+- RF2: O sistema deve calcular valor presente com diferentes índices de correção.
+- RF3: O sistema deve importar dados históricos de recebíveis.
+- RF4: O sistema deve calcular valor presente líquido ajustado por risco.
+- RF5: O sistema deve fornecer relatórios exportáveis.
+- RF6: O sistema deve gerar comparativos com benchmarks de mercado.
+- RF7: O sistema deve apresentar recomendações preditivas.
+
+4. Requisitos Não Funcionais
+- NFR1: Disponibilidade mínima de 99,5%.
+- NFR2: Escalabilidade horizontal em nuvem.
+- NFR3: Tempo de resposta inferior a 2 segundos por cálculo.
+- NFR4: Dados anonimizados para benchmarking.
+- NFR5: Autenticação e autorização seguras.
+
+5. Restrições
+- O sistema deve ser SaaS, sem necessidade de instalação local.
+- Deve atender LGPD para tratamento de dados.
