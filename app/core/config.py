@@ -26,7 +26,12 @@ class Settings(BaseSettings):
     rate_limit_requests: int = Field(100, ge=1, description="Maximum requests allowed per window per client")
     rate_limit_window_seconds: int = Field(60, ge=1, description="Window size in seconds for rate limiting")
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+    )
 
 
 @lru_cache()
