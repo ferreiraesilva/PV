@@ -1,27 +1,29 @@
-﻿from datetime import date
+from datetime import date
 
 from fastapi.testclient import TestClient
 
-from app.main import app
-
-client = TestClient(app)
+from tests.conftest import TENANT_ID
 
 
-def test_simulation_endpoint_returns_metrics() -> None:
+def test_simulation_endpoint_returns_metrics(client: TestClient, auth_headers: dict[str, str]) -> None:
     payload = {
         "principal": 10000,
         "discount_rate": 0.12,
         "installments": [{"period": idx + 1, "amount": 900} for idx in range(12)],
     }
-    response = client.post("/api/v1/t/demo-tenant/simulations", json=payload)
+    response = client.post(
+        f"/api/v1/t/{TENANT_ID}/simulations",
+        json=payload,
+        headers=auth_headers,
+    )
     assert response.status_code == 200
     body = response.json()
-    assert body["tenant_id"] == "demo-tenant"
+    assert body["tenant_id"] == TENANT_ID
     assert body["result"]["average_installment"] == 900
     assert body["result"]["payment"] == 888.49
 
 
-def test_valuation_endpoint_returns_scenarios() -> None:
+def test_valuation_endpoint_returns_scenarios(client: TestClient, auth_headers: dict[str, str]) -> None:
     payload = {
         "cashflows": [
             {
@@ -42,10 +44,14 @@ def test_valuation_endpoint_returns_scenarios() -> None:
             {"code": "stress", "discount_rate": 0.12, "default_multiplier": 1.2, "cancellation_multiplier": 1.1},
         ],
     }
-    response = client.post("/api/v1/t/demo-tenant/valuations/snapshots/snap-1/results", json=payload)
+    response = client.post(
+        f"/api/v1/t/{TENANT_ID}/valuations/snapshots/snap-1/results",
+        json=payload,
+        headers=auth_headers,
+    )
     assert response.status_code == 200
     data = response.json()
-    assert data["tenant_id"] == "demo-tenant"
+    assert data["tenant_id"] == TENANT_ID
     assert len(data["results"]) == 2
     codes = {item["code"] for item in data["results"]}
     assert codes == {"base", "stress"}

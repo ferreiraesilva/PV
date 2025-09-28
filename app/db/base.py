@@ -1,4 +1,4 @@
-﻿from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
@@ -7,6 +7,6 @@ class Base(DeclarativeBase):
 
 # Import models here so Alembic can discover metadata
 try:
-    from app.db.models import tenant, user  # noqa: F401
+    from app.db.models import audit_log, refresh_token, tenant, user  # noqa: F401
 except ImportError:
     pass

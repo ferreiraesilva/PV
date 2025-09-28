@@ -1,4 +1,4 @@
-﻿from functools import lru_cache
+from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     log_level: str = Field("INFO", description="Application log level")
     cors_origins: str = Field("*", description="Comma separated list of allowed CORS origins")
     metrics_namespace: str = Field("safv", description="Metrics namespace prefix")
+
+    rate_limit_requests: int = Field(100, ge=1, description="Maximum requests allowed per window per client")
+    rate_limit_window_seconds: int = Field(60, ge=1, description="Window size in seconds for rate limiting")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True)
 

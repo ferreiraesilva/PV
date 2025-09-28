@@ -1,5 +1,6 @@
-﻿from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request
 
+from app.api.deps import CurrentUser, require_roles
 from app.api.schemas.simulation import CashflowInput, ScenarioResult, ValuationInput, ValuationResponse
 from app.db.session import get_db
 from app.services.financial import Cashflow
@@ -9,12 +10,24 @@ router = APIRouter(tags=["Valuations"], prefix="/t/{tenant_id}")
 
 
 def _record_audit(request: Request, payload: dict) -> None:
-    request.state.audit_payload_out = payload
-    request.state.audit_diffs = payload
+    result_only = {"results": payload.get("results")}
+    request.state.audit_payload_out = result_only
+    request.state.audit_diffs = {"scenarios": payload.get("results")}
+    request.state.audit_resource_type = "valuation_execution"
 
 
 @router.post("/valuations/snapshots/{snapshot_id}/results", response_model=ValuationResponse)
-def evaluate_snapshot(tenant_id: str, snapshot_id: str, payload: ValuationInput, request: Request, db=Depends(get_db)) -> ValuationResponse:  # noqa: ARG001
+def evaluate_snapshot(
+    tenant_id: str,
+    snapshot_id: str,
+    payload: ValuationInput,
+    request: Request,
+    db=Depends(get_db),  # noqa: ARG001
+    current_user: CurrentUser = Depends(require_roles("user", "superuser")),
+) -> ValuationResponse:
+    request.state.audit_actor_roles = current_user.roles
+    request.state.audit_actor_user_id = current_user.user_id
+
     cashflows = [
         Cashflow(
             due_date=item.due_date,

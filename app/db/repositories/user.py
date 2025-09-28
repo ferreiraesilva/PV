@@ -1,4 +1,8 @@
-﻿from sqlalchemy.orm import Session
+from __future__ import annotations
+
+from uuid import UUID
+
+from sqlalchemy.orm import Session
 
 from app.db.models import User
 
@@ -13,6 +17,9 @@ class UserRepository:
             .filter(User.tenant_id == tenant_id, User.email == email)
             .one_or_none()
         )
+
+    def get_by_id(self, user_id: UUID | str) -> User | None:
+        return self.session.query(User).filter(User.id == user_id).one_or_none()
 
     def create(self, user: User) -> User:
         self.session.add(user)

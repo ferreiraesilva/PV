@@ -1,9 +1,10 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter
 
-from app.api.routes import auth, health, simulations, valuations
+from app.api.routes import auth, benchmarking, health, simulations, valuations
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(health.router)
 api_router.include_router(auth.router, prefix="/t/{tenant_id}")
 api_router.include_router(simulations.router)
 api_router.include_router(valuations.router)
+api_router.include_router(benchmarking.router)
