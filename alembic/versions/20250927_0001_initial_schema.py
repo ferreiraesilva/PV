@@ -443,8 +443,8 @@ def upgrade() -> None:
         VALUES (
             '44444444-4444-4444-4444-444444444444',
             '11111111-1111-1111-1111-111111111111',
-            'admin@safv.local',
-            '$2b$12$C/7yR.4Z1cdq9VHtVxo1Ke3v4jArlTcidH8333Adxpv8uKXu95syG',
+            'admin@labs4ideas.com.br',
+            '$2b$12$Y3gvmmuiRrJ5gDLUBxKMk.rYfX7UykHSpL9PiW3fVGPoL0Lbvm/VW',
             'Default SAFV Admin',
             TRUE,
             TRUE,

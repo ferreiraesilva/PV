@@ -39,8 +39,8 @@ INSERT INTO users (id, tenant_id, email, hashed_password, full_name, is_active, 
 VALUES (
     '44444444-4444-4444-4444-444444444444',
     '11111111-1111-1111-1111-111111111111',
-    'admin@safv.local',
-    '$2b$12$C/7yR.4Z1cdq9VHtVxo1Ke3v4jArlTcidH8333Adxpv8uKXu95syG',
+    'admin@labs4ideas.com.br',
+    '$2b$12$Y3gvmmuiRrJ5gDLUBxKMk.rYfX7UykHSpL9PiW3fVGPoL0Lbvm/VW',
     'Default SAFV Admin',
     TRUE,
     TRUE
@@ -55,4 +55,4 @@ INSERT INTO user_roles (user_id, role_id)
 VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222')
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
--- Default credentials: admin@safv.local / ChangeMe123!
+-- Default credentials: admin@labs4ideas.com.br / ChangeMe123!
