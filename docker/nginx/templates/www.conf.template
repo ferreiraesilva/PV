@@ -1,0 +1,26 @@
+﻿server {
+    listen 80;
+    server_name ${WWW_SERVER_NAME};
+
+    include /etc/nginx/snippets/letsencrypt.conf;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${WWW_SERVER_NAME};
+
+    ssl_certificate /etc/letsencrypt/live/${WWW_SERVER_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${WWW_SERVER_NAME}/privkey.pem;
+
+    include /etc/nginx/snippets/ssl-params.conf;
+
+    location / {
+        proxy_pass ${WWW_UPSTREAM_URL};
+        proxy_set_header Host ${WWW_PROXY_HOST};
+        include /etc/nginx/snippets/proxy-params.conf;
+    }
+}

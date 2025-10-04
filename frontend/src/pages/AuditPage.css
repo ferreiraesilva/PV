@@ -1,0 +1,22 @@
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filters .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.audit-results header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.audit-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}

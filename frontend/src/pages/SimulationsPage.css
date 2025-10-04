@@ -1,0 +1,59 @@
+.installments {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.installments header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.installments-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.installment-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 44px;
+  gap: 12px;
+  align-items: end;
+}
+
+.installment-row .remove {
+  border: none;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.18);
+  color: #7f1d1d;
+  height: 44px;
+  cursor: pointer;
+}
+
+.installment-row .remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.simulation-result header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.simulation-result .label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.simulation-result .value {
+  margin: 6px 0 0;
+  font-size: 16px;
+  color: #0f172a;
+}

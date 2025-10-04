@@ -135,3 +135,8 @@ Dockerfile.*.backup
 .DS_Store
 Thumbs.db
 
+# Frontend artifacts
+node_modules/
+*.tsbuildinfo
+frontend/dist/
+frontend/node_modules/

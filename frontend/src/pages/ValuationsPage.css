@@ -1,0 +1,64 @@
+.cashflows,
+.scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cashflows header,
+.scenarios header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cashflow-grid,
+.scenario-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cashflow-row,
+.scenario-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) 44px;
+  gap: 12px;
+  align-items: end;
+}
+
+.cashflow-row .remove,
+.scenario-row .remove {
+  border: none;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.18);
+  color: #7f1d1d;
+  height: 44px;
+  cursor: pointer;
+}
+
+.cashflow-row .remove:disabled,
+.scenario-row .remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.valuation-result header {
+  margin-bottom: 16px;
+}
+
+.valuation-result header h2 {
+  margin: 0;
+}
+
+.valuation-result header p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+@media (max-width: 900px) {
+  .cashflow-row,
+  .scenario-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

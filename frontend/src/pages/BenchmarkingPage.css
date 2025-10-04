@@ -1,0 +1,27 @@
+.aggregation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.aggregation-header h2 {
+  margin: 0;
+}
+
+.aggregation-header p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+.aggregation-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .aggregation-header {
+    flex-direction: column;
+  }
+}

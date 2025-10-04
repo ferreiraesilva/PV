@@ -1,6 +1,12 @@
+﻿x-backend-environment: &backend-env
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://app_user:change_me@postgres:5432/pv}
+  DATABASE_PLAIN_URL: ${DATABASE_PLAIN_URL:-postgresql://app_user:change_me@postgres:5432/pv}
+  APPLY_SEEDS: ${APPLY_SEEDS:-true}
+
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-pv}
       POSTGRES_USER: ${POSTGRES_USER:-app_user}
@@ -16,15 +22,15 @@ services:
       retries: 10
 
   app:
+    profiles: ["dev"]
     build:
       context: .
       dockerfile: Dockerfile
     env_file:
       - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://app_user:change_me@postgres:5432/pv}
-      DATABASE_PLAIN_URL: ${DATABASE_PLAIN_URL:-postgresql://app_user:change_me@postgres:5432/pv}
-      APPLY_SEEDS: ${APPLY_SEEDS:-true}
+      <<: *backend-env
+      DEPLOY_ENV: dev
     depends_on:
       postgres:
         condition: service_healthy
@@ -34,10 +40,97 @@ services:
       - ./:/app
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
+  backend:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      <<: *backend-env
+      DEPLOY_ENV: prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8000"
+    command: [
+      "uvicorn",
+      "app.main:app",
+      "--host", "0.0.0.0",
+      "--port", "8000",
+      "--workers", "4"
+    ]
+    restart: unless-stopped
+
+  frontend-dev:
+    profiles: ["dev"]
+    image: node:20-alpine
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./frontend:/app
+    command: ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0 --port 5173"]
+    ports:
+      - "5173:5173"
+    depends_on:
+      - app
+
+  frontend:
+    profiles: ["prod"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+    expose:
+      - "4173"
+    restart: unless-stopped
+
+  nginx:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_SERVER_NAME: ${API_SERVER_NAME:-api.labs4ideas.com.br}
+      FRONTEND_SERVER_NAME: ${FRONTEND_SERVER_NAME:-pv.labs4ideas.com.br}
+      WWW_SERVER_NAME: ${WWW_SERVER_NAME:-www.labs4ideas.com.br}
+      BACKEND_UPSTREAM: http://backend:8000
+      FRONTEND_UPSTREAM: http://frontend:4173
+      WWW_UPSTREAM_URL: ${WWW_UPSTREAM_URL:-}
+      WWW_PROXY_HOST: ${WWW_PROXY_HOST:-www.labs4ideas.com.br}
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-etc:/etc/letsencrypt
+
+  certbot:
+    profiles: ["prod"]
+    image: certbot/certbot:latest
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+    depends_on:
+      nginx:
+        condition: service_started
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-etc:/etc/letsencrypt
+
   pgadmin:
+    profiles: ["dev"]
     image: dpage/pgadmin4:8
-    profiles:
-      - pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@labs4ideas.com.br}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin123}
@@ -49,3 +142,5 @@ services:
 
 volumes:
   postgres_data:
+  certbot-etc:
+  certbot-www:
