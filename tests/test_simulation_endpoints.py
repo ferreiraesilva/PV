@@ -12,7 +12,7 @@ def test_simulation_endpoint_returns_metrics(client: TestClient, auth_headers: d
         "installments": [{"period": idx + 1, "amount": 900} for idx in range(12)],
     }
     response = client.post(
-        f"/api/v1/t/{TENANT_ID}/simulations",
+        f"/v1/t/{TENANT_ID}/simulations",
         json=payload,
         headers=auth_headers,
     )
@@ -45,7 +45,7 @@ def test_valuation_endpoint_returns_scenarios(client: TestClient, auth_headers: 
         ],
     }
     response = client.post(
-        f"/api/v1/t/{TENANT_ID}/valuations/snapshots/snap-1/results",
+        f"/v1/t/{TENANT_ID}/valuations/snapshots/snap-1/results",
         json=payload,
         headers=auth_headers,
     )

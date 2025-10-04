@@ -10,7 +10,7 @@ from app.core.security import pwd_context
 from app.db.session import get_db
 
 settings = get_settings()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/t/{tenant_id}/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/t/{tenant_id}/login")
 
 
 class CurrentUser:

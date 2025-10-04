@@ -1,0 +1,461 @@
+{
+  "info": {
+    "_postman_id": "9ed706f6-c238-4420-93d8-7d67386a5eb6",
+    "name": "PV API",
+    "description": "Colecao para testar os endpoints expostos pelo servico FastAPI do projeto PV. Atualize as variaveis de ambiente do Postman conforme necessario.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health & Metrics",
+      "description": "Verificacoes basicas de disponibilidade do servico.",
+      "item": [
+        {
+          "name": "Metrics Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metrics"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Fluxo completo de autenticacao (login, refresh e logout).",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "login"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.accessToken || data.access_token) {",
+                  "    pm.environment.set(\"accessToken\", data.accessToken || data.access_token);",
+                  "  }",
+                  "  if (data.refreshToken || data.refresh_token) {",
+                  "    pm.environment.set(\"refreshToken\", data.refreshToken || data.refresh_token);",
+                  "  }",
+                  "  if (data.expiresIn || data.expires_in) {",
+                  "    pm.environment.set(\"accessTokenExpiresIn\", String(data.expiresIn || data.expires_in));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "refresh"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.accessToken || data.access_token) {",
+                  "    pm.environment.set(\"accessToken\", data.accessToken || data.access_token);",
+                  "  }",
+                  "  if (data.expiresIn || data.expires_in) {",
+                  "    pm.environment.set(\"accessTokenExpiresIn\", String(data.expiresIn || data.expires_in));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Simulations",
+      "description": "Calculo de metricas de simulacao de fluxo de pagamentos.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Simulation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"principal\": 100000,\n  \"discount_rate\": 0.08,\n  \"installments\": [\n    {\n      \"period\": 1,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 2,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 3,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 4,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 5,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 6,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 7,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 8,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 9,\n      \"amount\": 12000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/simulations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "simulations"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Valuations",
+      "description": "Validacao de cenarios de carteira e calculo de metricas de valuation.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Evaluate Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cashflows\": [\n    {\n      \"due_date\": \"2025-01-15\",\n      \"amount\": 15000,\n      \"probability_default\": 0.05,\n      \"probability_cancellation\": 0.02\n    },\n    {\n      \"due_date\": \"2025-02-15\",\n      \"amount\": 15000,\n      \"probability_default\": 0.04,\n      \"probability_cancellation\": 0.02\n    }\n  ],\n  \"scenarios\": [\n    {\n      \"code\": \"BASE\",\n      \"discount_rate\": 0.08,\n      \"default_multiplier\": 1.0,\n      \"cancellation_multiplier\": 1.0\n    },\n    {\n      \"code\": \"STRESS\",\n      \"discount_rate\": 0.1,\n      \"default_multiplier\": 1.3,\n      \"cancellation_multiplier\": 1.1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/valuations/snapshots/{{snapshotId}}/results",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "valuations",
+                "snapshots",
+                "{{snapshotId}}",
+                "results"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Benchmarking",
+      "description": "Ingestao e consulta de dados agregados de benchmarking.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Ingest Benchmark Dataset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "metric_code,segment_bucket,region_bucket,value\nturnover,SME,Southeast,100000\nturnover,Enterprise,South,250000\n",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/benchmarking/batches/{{batchId}}/ingest?filename={{benchmarkFilename}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "benchmarking",
+                "batches",
+                "{{batchId}}",
+                "ingest"
+              ],
+              "query": [
+                {
+                  "key": "filename",
+                  "value": "{{benchmarkFilename}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Benchmark Aggregations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/benchmarking/batches/{{batchId}}/aggregations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "benchmarking",
+                "batches",
+                "{{batchId}}",
+                "aggregations"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.hostname_I_will_choose.com",
+      "type": "string",
+      "description": "Host de producao"
+    },
+    {
+      "key": "tenantId",
+      "value": "11111111-1111-1111-1111-111111111111",
+      "type": "string"
+    },
+    {
+      "key": "snapshotId",
+      "value": "snapshot-001",
+      "type": "string"
+    },
+    {
+      "key": "batchId",
+      "value": "00000000-0000-0000-0000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "benchmarkFilename",
+      "value": "dataset.csv",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accessTokenExpiresIn",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userEmail",
+      "value": "admin@example.com",
+      "type": "string"
+    },
+    {
+      "key": "userPassword",
+      "value": "changeme",
+      "type": "string"
+    },
+    {
+      "key": "homologBaseUrl",
+      "value": "https://api-homolog.hostname_i_will_choose.com",
+      "type": "string",
+      "description": "Host de homologacao (copie para baseUrl no ambiente de homologacao)"
+    }
+  ]
+}

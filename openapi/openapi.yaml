@@ -7,7 +7,7 @@ info:
     benchmarking, recommendations, and mandatory auditing within a FastAPI monolith. Every authenticated
     action produces an append-only audit record. This OpenAPI contract covers the MVP scope.
 servers:
-  - url: http://localhost:8000/api/v1
+  - url: http://localhost:8000/v1
     description: Local development
 tags:
   - name: Health

@@ -41,7 +41,7 @@ def create_app() -> FastAPI:
         RateLimitMiddleware,
         limit=settings.rate_limit_requests,
         window_seconds=settings.rate_limit_window_seconds,
-        excluded_paths={"/metrics", "/api/v1/health"},
+        excluded_paths={"/metrics", "/v1/health"},
     )
     app.add_middleware(AuditMiddleware)
     register_exception_handlers(app)

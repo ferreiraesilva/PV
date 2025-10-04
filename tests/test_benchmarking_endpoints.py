@@ -23,7 +23,7 @@ default_rate,PME Financas,Sul,1.6
 default_rate,,Sudeste,1.1
 """.encode("utf-8")
     response = client.post(
-        f"/api/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
+        f"/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
         params={"filename": "dataset.csv"},
         headers=_headers_with_auth(auth_headers),
         content=csv_content,
@@ -53,7 +53,7 @@ vpl,Micro Comercio,Sudeste,1.0
 vpl,Micro Comercio,Sudeste,1.1
 """.encode("utf-8")
     response = client.post(
-        f"/api/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
+        f"/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
         params={"filename": "metrics.csv"},
         headers=_headers_with_auth(auth_headers),
         content=csv_content,
@@ -73,7 +73,7 @@ inadimplencia,Large Industrias,Sudeste,4.5
 inadimplencia,Large Industrias,Sudeste,5.5
 """.encode("utf-8")
     ingest_response = client.post(
-        f"/api/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
+        f"/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
         params={"filename": "data.csv"},
         headers=_headers_with_auth(auth_headers),
         content=csv_content,
@@ -81,7 +81,7 @@ inadimplencia,Large Industrias,Sudeste,5.5
     assert ingest_response.status_code == 200
 
     response = client.get(
-        f"/api/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/aggregations",
+        f"/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/aggregations",
         headers=auth_headers,
     )
     assert response.status_code == 200
