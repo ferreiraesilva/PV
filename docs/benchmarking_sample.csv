@@ -1,0 +1,15 @@
+metric_code,segment,region,value
+default_rate,PME Financas,Sudeste,1.2
+DEFAULT_RATE,PME Financas,Sudeste,1.4
+default_rate,PME Financas,Sudeste,1.0
+default_rate,PME Financas,Sul,1.6
+default_rate,,Sudeste,1.1
+spread,Enterprise Servicos,Sul,2.0
+spread,Enterprise Servicos,Sudeste,3.0
+spread,Enterprise Servicos,Norte,4.0
+spread,Enterprise Servicos,Sul,2.5
+vpl,Micro Comercio,Sudeste,1.0
+vpl,Micro Comercio,Sudeste,1.1
+inadimplencia,Large Industrias,Sudeste,5.0
+inadimplencia,Large Industrias,Sudeste,4.5
+inadimplencia,Large Industrias,Sudeste,5.5

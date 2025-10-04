@@ -1,4 +1,4 @@
-﻿#!/bin/sh
+#!/bin/sh
 set -e
 
 DB_DSN="${DATABASE_PLAIN_URL:-}"
