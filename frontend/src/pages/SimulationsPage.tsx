@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿import { PageHeader } from '../components/PageHeader';
+﻿﻿import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useSimulations } from '../hooks/useSimulations';
 import type { SimulationOutcome } from '../api/types';
@@ -202,42 +202,45 @@ export default function SimulationsPage() {
             </div>
             <div className="installments">
               <h3>Parcelas</h3>
-              <div className="installments-grid">
-                {plan.installments.map((item, installmentIndex) => (
-                  <div key={`installment-${plan.key}-${installmentIndex}`} className="installment-row">
-                    <div className="form-field">
-                      <label>Vencimento</label>
-                      <input
-                        type="date"
-                        value={item.due_date}
-                        onChange={(event) =>
-                          updateInstallment(planIndex, installmentIndex, 'due_date', event.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label>Valor</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.amount}
-                        onChange={(event) =>
-                          updateInstallment(planIndex, installmentIndex, 'amount', event.target.valueAsNumber || 0)
-                        }
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="remove"
-                      onClick={() => removeInstallment(planIndex, installmentIndex)}
-                      aria-label="Remover parcela"
-                      disabled={plan.installments.length === 1}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+              <div className="table-responsive">
+                <table className="table editable-table">
+                  <thead>
+                    <tr>
+                      <th>Vencimento</th>
+                      <th>Valor</th>
+                      <th style={{ width: '50px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plan.installments.map((item, installmentIndex) => (
+                      <tr key={`installment-${plan.key}-${installmentIndex}`}>
+                        <td>
+                          <input
+                            type="date"
+                            value={item.due_date}
+                            onChange={(event) =>
+                              updateInstallment(planIndex, installmentIndex, 'due_date', event.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.amount}
+                            onChange={(event) =>
+                              updateInstallment(planIndex, installmentIndex, 'amount', event.target.valueAsNumber || 0)
+                            }
+                          />
+                        </td>
+                        <td>
+                          <button type="button" className="remove" onClick={() => removeInstallment(planIndex, installmentIndex)} aria-label="Remover parcela" disabled={plan.installments.length === 1}>×</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </section>

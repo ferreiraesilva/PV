@@ -1,0 +1,188 @@
+import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { useSimulations } from './useSimulations';
+import * as AuthHook from './useAuth';
+import * as SimulationsAPI from '../api/simulations';
+
+// Mock dependencies
+vi.mock('./useAuth');
+vi.mock('../api/simulations');
+
+describe('useSimulations', () => {
+  const mockTenantId = 'test-tenant';
+  const mockAccessToken = 'test-token';
+  const mockEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
+
+  beforeEach(() => {
+    // Reset mocks before each test
+    vi.resetAllMocks();
+
+    // Mock useAuth to simulate an authenticated user
+    vi.spyOn(AuthHook, 'useAuth').mockReturnValue({
+      tenantId: mockTenantId,
+      accessToken: mockAccessToken,
+      user: { email: 'test@example.com', roles: ['user'] },
+      login: vi.fn(),
+      logout: vi.fn(),
+      refresh: vi.fn(),
+    });
+
+    // Mock the simulation API
+    vi.spyOn(SimulationsAPI, 'createSimulation').mockResolvedValue({
+      tenant_id: mockTenantId,
+      outcomes: [],
+    });
+  });
+
+  it('should initialize with one default plan', () => {
+    const { result } = renderHook(() => useSimulations());
+
+    expect(result.current.plans.length).toBe(1);
+    expect(result.current.plans[0].principal).toBe(3000);
+    expect(result.current.error).toBeNull();
+    expect(result.current.result).toBeNull();
+  });
+
+  it('should add and remove plans', () => {
+    const { result } = renderHook(() => useSimulations());
+
+    act(() => {
+      result.current.addPlan();
+    });
+    expect(result.current.plans.length).toBe(2);
+
+    act(() => {
+      result.current.removePlan(0);
+    });
+    expect(result.current.plans.length).toBe(1);
+  });
+
+  it('should not remove the last plan', () => {
+    const { result } = renderHook(() => useSimulations());
+
+    expect(result.current.canRemovePlan).toBe(false);
+    act(() => {
+      result.current.removePlan(0);
+    });
+    expect(result.current.plans.length).toBe(1);
+  });
+
+  it('should update a plan field', () => {
+    const { result } = renderHook(() => useSimulations());
+
+    act(() => {
+      result.current.updatePlanField(0, 'label', 'My Test Plan');
+    });
+
+    expect(result.current.plans[0].label).toBe('My Test Plan');
+  });
+
+  it('should not submit if there are no installments in a plan', async () => {
+    const { result } = renderHook(() => useSimulations());
+
+    // Remove all installments from the first plan
+    act(() => {
+      result.current.plans[0].installments.forEach((_, index) => {
+        result.current.removeInstallment(0, 0); // always remove the first one
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(result.current.error).toBe('Inclua pelo menos um plano com uma parcela para simular.');
+    expect(SimulationsAPI.createSimulation).not.toHaveBeenCalled();
+  });
+
+  it('should not submit if there are duplicate plan labels', async () => {
+    const { result } = renderHook(() => useSimulations());
+
+    act(() => {
+      result.current.addPlan();
+    });
+
+    act(() => {
+      result.current.updatePlanField(0, 'label', 'Plano Repetido');
+      result.current.updatePlanField(1, 'label', 'Plano Repetido');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(result.current.error).toBe('Não são permitidos planos com nomes duplicados. Por favor, ajuste os nomes e tente novamente.');
+    expect(SimulationsAPI.createSimulation).not.toHaveBeenCalled();
+  });
+
+  it('should allow submission if duplicate labels are empty strings', async () => {
+    const { result } = renderHook(() => useSimulations());
+
+    act(() => {
+      result.current.addPlan();
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(SimulationsAPI.createSimulation).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle successful submission with correct payload', async () => {
+    const createSimulationSpy = vi.spyOn(SimulationsAPI, 'createSimulation');
+    const { result } = renderHook(() => useSimulations());
+
+    // Modify a plan to test payload creation
+    act(() => {
+      result.current.updatePlanField(0, 'discountRate', 12);
+      result.current.updatePlanField(0, 'discountRatePeriod', 'annual');
+      result.current.updatePlanField(0, 'adjustmentAddonRate', 1.5);
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(result.current.submitting).toBe(false);
+    expect(result.current.error).toBeNull();
+    expect(result.current.result).not.toBeNull();
+
+    expect(createSimulationSpy).toHaveBeenCalledTimes(1);
+    const payload = createSimulationSpy.mock.calls[0][2];
+    const planPayload = payload.plans[0];
+
+    // Check rate conversion: (1 + 0.12)^(1/12) - 1
+    expect(planPayload.discount_rate).toBeCloseTo(0.00948879);
+    // Check adjustment rate conversion
+    expect(planPayload.adjustment?.addon_rate).toBe(0.015);
+  });
+
+  it('should handle API error on submission', async () => {
+    const errorMessage = 'API Failure';
+    vi.spyOn(SimulationsAPI, 'createSimulation').mockRejectedValue(new Error(errorMessage));
+    const { result } = renderHook(() => useSimulations());
+
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(result.current.submitting).toBe(false);
+    expect(result.current.result).toBeNull();
+    expect(result.current.error).toBe(errorMessage);
+  });
+
+  it('should set submitting state during API call', async () => {
+    const { result } = renderHook(() => useSimulations());
+
+    const promise = act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(result.current.submitting).toBe(true);
+    await promise;
+    expect(result.current.submitting).toBe(false);
+  });
+});

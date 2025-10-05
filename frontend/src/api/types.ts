@@ -1,4 +1,4 @@
-﻿export interface TokenPairResponse {
+﻿﻿export interface TokenPairResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
@@ -184,6 +184,12 @@ export interface AuditLogEntry {
   method: string;
   endpoint: string;
   statusCode: number;
+}
+
+export interface PaginatedAuditLogResponse {
+  items: AuditLogEntry[];
+  nextCursor?: string | null;
+  hasNextPage: boolean;
 }
 
 export interface TenantSummary {

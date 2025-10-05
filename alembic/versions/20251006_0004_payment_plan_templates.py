@@ -1,4 +1,4 @@
-﻿"""Add payment plan templates support"""
+"""Add payment plan templates support"""
 from typing import Sequence, Union
 
 from alembic import op

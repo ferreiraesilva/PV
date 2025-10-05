@@ -72,6 +72,13 @@ export const useSimulations = () => {
       return;
     }
 
+    // Validação de nomes de planos duplicados (ignorando nomes vazios)
+    const planLabels = plans.map(p => p.label.trim()).filter(label => label !== '');
+    if (planLabels.length > new Set(planLabels).size) {
+      setError('Não são permitidos planos com nomes duplicados. Por favor, ajuste os nomes e tente novamente.');
+      return;
+    }
+
     const getMonthlyDecimalRate = (rate: number, period: 'monthly' | 'annual'): number => {
       const decimalRate = rate / 100;
       return period === 'monthly' ? decimalRate : Math.pow(1 + decimalRate, 1 / 12) - 1;

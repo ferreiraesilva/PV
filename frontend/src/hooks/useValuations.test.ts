@@ -80,6 +80,41 @@ describe('useValuations', () => {
     expect(ValuationsAPI.evaluateValuation).not.toHaveBeenCalled();
   });
 
+  it('should not submit if there are duplicate scenario codes', async () => {
+    const { result } = renderHook(() => useValuations());
+
+    act(() => {
+      result.current.setSnapshotId('snap-123');
+      // Default scenarios: 'optimista', 'base', 'conservador'
+      // Change 'base' to 'optimista' to create a duplicate
+      result.current.updateScenario(1, 'code', 'optimista');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(result.current.error).toBe('Não são permitidos cenários com códigos duplicados. Por favor, ajuste os códigos e tente novamente.');
+    expect(ValuationsAPI.evaluateValuation).not.toHaveBeenCalled();
+  });
+
+  it('should allow submission if duplicate codes are empty strings', async () => {
+    const { result } = renderHook(() => useValuations());
+
+    act(() => {
+      result.current.setSnapshotId('snap-123');
+      result.current.updateScenario(0, 'code', '');
+      result.current.updateScenario(1, 'code', '');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(ValuationsAPI.evaluateValuation).toHaveBeenCalledTimes(1);
+  });
+
   it('should handle successful submission', async () => {
     const evaluateValuationSpy = vi.spyOn(ValuationsAPI, 'evaluateValuation');
     const { result } = renderHook(() => useValuations());

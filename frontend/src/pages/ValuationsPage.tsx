@@ -46,59 +46,39 @@ export default function ValuationsPage() {
               Adicionar fluxo
             </button>
           </header>
-          <div className="cashflow-grid">
-            {cashflows.map((item, index) => (
-              <div key={`cashflow-${index}`} className="cashflow-row">
-                <div className="form-field">
-                  <label>Data</label>
-                  <input
-                    type="date"
-                    value={item.due_date}
-                    onChange={(event) => updateCashflow(index, 'due_date', event.target.value as string)}
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Valor</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.amount}
-                    onChange={(event) => updateCashflow(index, 'amount', event.target.valueAsNumber || 0)}
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Prob. default</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.001"
-                    value={item.probability_default}
-                    onChange={(event) => updateCashflow(index, 'probability_default', event.target.valueAsNumber || 0)}
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Prob. cancelamento</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.001"
-                    value={item.probability_cancellation}
-                    onChange={(event) => updateCashflow(index, 'probability_cancellation', event.target.valueAsNumber || 0)}
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="remove"
-                  onClick={() => removeCashflow(index)}
-                  disabled={cashflows.length === 1}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+          <div className="table-responsive">
+            <table className="table editable-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Valor</th>
+                  <th>Prob. Default</th>
+                  <th>Prob. Cancel.</th>
+                  <th style={{ width: '50px' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {cashflows.map((item, index) => (
+                  <tr key={`cashflow-${index}`}>
+                    <td>
+                      <input type="date" value={item.due_date} onChange={(event) => updateCashflow(index, 'due_date', event.target.value as string)} />
+                    </td>
+                    <td>
+                      <input type="number" min="0" step="0.01" value={item.amount} onChange={(event) => updateCashflow(index, 'amount', event.target.valueAsNumber || 0)} />
+                    </td>
+                    <td>
+                      <input type="number" min="0" max="1" step="0.001" value={item.probability_default} onChange={(event) => updateCashflow(index, 'probability_default', event.target.valueAsNumber || 0)} />
+                    </td>
+                    <td>
+                      <input type="number" min="0" max="1" step="0.001" value={item.probability_cancellation} onChange={(event) => updateCashflow(index, 'probability_cancellation', event.target.valueAsNumber || 0)} />
+                    </td>
+                    <td>
+                      <button type="button" className="remove" onClick={() => removeCashflow(index)} disabled={cashflows.length === 1}>✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
         <section className="scenarios">

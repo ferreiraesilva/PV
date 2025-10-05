@@ -1,4 +1,4 @@
-﻿"""Initial safv schema"""
+"""Initial safv schema"""
 from typing import Sequence, Union
 
 from alembic import op

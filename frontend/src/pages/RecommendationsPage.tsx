@@ -1,89 +1,32 @@
-import { FormEvent, useState } from 'react';
-
 import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../hooks/useAuth';
-import { createRecommendationRun, getRecommendationRun } from '../api/recommendations';
-import type { CalculationJobStatus, RecommendationRunResponse } from '../api/types';
+import { useRecommendations } from '../hooks/useRecommendations';
 import './RecommendationsPage.css';
 
 export default function RecommendationsPage() {
-  const { tenantId, accessToken } = useAuth();
-  const [runType, setRunType] = useState('pricing');
-  const [snapshotId, setSnapshotId] = useState('');
-  const [simulationId, setSimulationId] = useState('');
-  const [parameters, setParameters] = useState(
-    JSON.stringify(
-      {
-        target: 'inadimplencia',
-      },
-      null,
-      2,
-    ),
-  );
-  const [jobStatus, setJobStatus] = useState<CalculationJobStatus | null>(null);
-  const [runDetail, setRunDetail] = useState<RecommendationRunResponse | null>(null);
-  const [runId, setRunId] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(false);
+  const { tenantId } = useAuth();
+  const {
+    runType, setRunType,
+    snapshotId, setSnapshotId,
+    simulationId, setSimulationId,
+    parameters, setParameters,
+    jobStatus,
+    runDetail,
+    runId, setRunId,
+    error,
+    loading,
+    fetching,
+    handleStartRun,
+    handleFetchRun,
+  } = useRecommendations();
 
-  if (!tenantId || !accessToken) {
+  if (!tenantId) {
     return (
       <div className="card">
-        <p>FaÃ§a login para acessar recomendaÃ§Ãµes.</p>
+        <p>FaÃ§a login para acessar recomendações.</p>
       </div>
     );
   }
-
-  const handleStartRun = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    let parsedParams: Record<string, unknown> | undefined;
-    if (parameters.trim()) {
-      try {
-        parsedParams = JSON.parse(parameters);
-      } catch (err) {
-        setError('ParÃ¢metros devem ser um JSON vÃ¡lido.');
-        return;
-      }
-    }
-    try {
-      setLoading(true);
-      const response = await createRecommendationRun(tenantId, accessToken, {
-        runType,
-        snapshotId: snapshotId || undefined,
-        simulationId: simulationId || undefined,
-        parameters: parsedParams,
-      });
-      setJobStatus(response);
-      setRunId(response.jobId);
-      setRunDetail(null);
-    } catch (err) {
-      const message = (err as Error).message ?? 'Falha ao iniciar recomendaÃ§Ã£o (endpoint pode nÃ£o estar disponÃ­vel).';
-      setError(message);
-      setJobStatus(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFetchRun = async () => {
-    setError(null);
-    if (!runId) {
-      setError('Informe o runId retornado pelo backend.');
-      return;
-    }
-    try {
-      setFetching(true);
-      const response = await getRecommendationRun(tenantId, runId, accessToken);
-      setRunDetail(response);
-    } catch (err) {
-      const message = (err as Error).message ?? 'NÃ£o foi possÃ­vel buscar o run (endpoint pode nÃ£o existir).';
-      setError(message);
-    } finally {
-      setFetching(false);
-    }
-  };
 
   return (
     <div className="stack">

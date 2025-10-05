@@ -1,4 +1,4 @@
-﻿from app.db.models.audit_log import AuditLog
+from app.db.models.audit_log import AuditLog
 from app.db.models.commercial_plan import CommercialPlan
 from app.db.models.payment_plan_installment import PaymentPlanInstallment
 from app.db.models.payment_plan_template import PaymentPlanTemplate

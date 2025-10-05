@@ -1,4 +1,4 @@
-﻿from datetime import date
+from datetime import date
 
 from app.services.financial import Cashflow, calculate_portfolio_value, calculate_simulation_metrics, payment, present_value
 

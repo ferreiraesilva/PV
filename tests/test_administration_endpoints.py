@@ -1,4 +1,4 @@
-﻿from uuid import UUID
+from uuid import UUID
 import uuid
 from datetime import datetime, timezone
 from types import SimpleNamespace

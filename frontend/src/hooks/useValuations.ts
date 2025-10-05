@@ -112,6 +112,13 @@ export const useValuations = () => {
       return;
     }
 
+    // Validação de códigos de cenários duplicados (ignorando códigos vazios)
+    const scenarioCodes = scenarios.map(s => s.code.trim()).filter(code => code !== '');
+    if (scenarioCodes.length > new Set(scenarioCodes).size) {
+      setError('Não são permitidos cenários com códigos duplicados. Por favor, ajuste os códigos e tente novamente.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const response = await evaluateValuation(tenantId, accessToken, { cashflows, scenarios });
