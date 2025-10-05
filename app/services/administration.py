@@ -1,12 +1,13 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import secrets
+from decimal import Decimal
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Sequence
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,8 @@ from app.core.roles import ALLOWED_ROLES, SUPERADMIN_ROLE, TENANT_ADMIN_ROLE, TE
 from app.core.security import get_password_hash, verify_password
 from app.db.models import (
     CommercialPlan,
+    PaymentPlanInstallment,
+    PaymentPlanTemplate,
     Tenant,
     TenantCompany,
     TenantPlanSubscription,
@@ -115,6 +118,35 @@ class PlanUpdateInput:
     price_cents: int | None = None
     currency: str | None = None
     billing_cycle_months: int | None = None
+    is_active: bool | None = None
+
+
+@dataclass(frozen=True)
+class PaymentPlanInstallmentInput:
+    period: int
+    amount: float
+
+
+@dataclass(frozen=True)
+class PaymentPlanTemplateCreateInput:
+    product_code: str
+    principal: float
+    discount_rate: float
+    installments: Sequence[PaymentPlanInstallmentInput]
+    name: str | None = None
+    description: str | None = None
+    metadata: dict | None = None
+    is_active: bool = True
+
+
+@dataclass(frozen=True)
+class PaymentPlanTemplateUpdateInput:
+    name: str | None = None
+    description: str | None = None
+    principal: float | None = None
+    discount_rate: float | None = None
+    installments: Sequence[PaymentPlanInstallmentInput] | None = None
+    metadata: dict | None = None
     is_active: bool | None = None
 
 
@@ -421,6 +453,114 @@ class AdministrationService:
         self.session.refresh(subscription)
         return subscription
 
+    # --------- Payment plan templates ---------
+    def list_payment_plan_templates(
+        self,
+        acting_user: ActingUser,
+        tenant_id: UUID,
+        *,
+        include_inactive: bool = False,
+    ) -> list[PaymentPlanTemplate]:
+        self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
+        self._assert_tenant_scope(acting_user, tenant_id)
+        stmt = select(PaymentPlanTemplate).where(PaymentPlanTemplate.tenant_id == tenant_id)
+        if not include_inactive:
+            stmt = stmt.where(PaymentPlanTemplate.is_active.is_(True))
+        stmt = stmt.order_by(PaymentPlanTemplate.product_code)
+        result = self.session.execute(stmt).unique()
+        return list(result.scalars())
+
+    def create_payment_plan_template(
+        self,
+        acting_user: ActingUser,
+        tenant_id: UUID,
+        payload: PaymentPlanTemplateCreateInput,
+    ) -> PaymentPlanTemplate:
+        self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
+        self._assert_tenant_scope(acting_user, tenant_id)
+        product_code = self._normalize_product_code(payload.product_code)
+        self._validate_payment_plan_values(payload.principal, payload.discount_rate)
+        installments = self._validate_payment_plan_installments(payload.installments)
+        stmt = select(PaymentPlanTemplate).where(
+            PaymentPlanTemplate.tenant_id == tenant_id,
+            func.lower(PaymentPlanTemplate.product_code) == product_code.lower(),
+        )
+        existing = self.session.execute(stmt).scalar_one_or_none()
+        if existing is not None:
+            raise BusinessRuleViolation("Product code already in use for this tenant")
+        template = PaymentPlanTemplate(
+            tenant_id=tenant_id,
+            product_code=product_code,
+            name=payload.name,
+            description=payload.description,
+            principal=self._to_decimal(payload.principal),
+            discount_rate=self._to_decimal(payload.discount_rate),
+            metadata_json=payload.metadata,
+            is_active=payload.is_active,
+        )
+        template.installments = [
+            PaymentPlanInstallment(period=item.period, amount=self._to_decimal(item.amount))
+            for item in installments
+        ]
+        self.session.add(template)
+        self._commit()
+        self.session.refresh(template)
+        return template
+
+
+    def update_payment_plan_template(
+        self,
+        acting_user: ActingUser,
+        tenant_id: UUID,
+        template_id: UUID,
+        payload: PaymentPlanTemplateUpdateInput,
+    ) -> PaymentPlanTemplate:
+        self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
+        template = self._get_payment_plan_template(template_id)
+        self._assert_tenant_scope(acting_user, template.tenant_id)
+        if template.tenant_id != tenant_id:
+            raise PermissionDeniedError("Template does not belong to the requested tenant")
+        if payload.name is not None:
+            template.name = payload.name
+        if payload.description is not None:
+            template.description = payload.description
+        if payload.principal is not None:
+            self._validate_payment_plan_values(payload.principal, template.discount_rate)
+            template.principal = self._to_decimal(payload.principal)
+        if payload.discount_rate is not None:
+            self._validate_payment_plan_values(template.principal, payload.discount_rate)
+            template.discount_rate = self._to_decimal(payload.discount_rate)
+        if payload.metadata is not None:
+            template.metadata_json = payload.metadata
+        if payload.is_active is not None:
+            template.is_active = payload.is_active
+
+        if payload.installments is not None:
+            installments = self._validate_payment_plan_installments(payload.installments)
+            self.session.add(template)
+            self.session.flush()
+            dialect_name = getattr(getattr(self.session.bind, "dialect", None), "name", None)
+            identifier = template.id.hex if dialect_name == "sqlite" else str(template.id)
+            self.session.execute(
+                text("DELETE FROM payment_plan_installments WHERE template_id = :template_id"),
+                {"template_id": identifier},
+            )
+            self._commit()
+            for item in installments:
+                self.session.add(
+                    PaymentPlanInstallment(
+                        template_id=template.id,
+                        period=item.period,
+                        amount=self._to_decimal(item.amount),
+                    )
+                )
+            self._commit()
+            return self._get_payment_plan_template(template_id)
+
+        self.session.add(template)
+        self._commit()
+        self.session.refresh(template)
+        return template
     # --------- User management ---------
     def create_user(self, acting_user: ActingUser, tenant_id: UUID, payload: UserInput) -> User:
         self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
@@ -658,6 +798,56 @@ class AdministrationService:
         stmt = select(func.count()).select_from(Tenant).where(Tenant.is_default.is_(True))
         return bool(self.session.execute(stmt).scalar_one())
 
+    def _get_payment_plan_template(self, template_id: UUID) -> PaymentPlanTemplate:
+        stmt = select(PaymentPlanTemplate).where(PaymentPlanTemplate.id == template_id)
+        template = self.session.execute(stmt).unique().scalar_one_or_none()
+        if template is None:
+            raise NotFoundError("Payment plan template not found")
+        return template
+
+    @staticmethod
+    def _normalize_product_code(code: str) -> str:
+        normalized = code.strip()
+        if not normalized:
+            raise BusinessRuleViolation("product_code is required")
+        if len(normalized) > 128:
+            raise BusinessRuleViolation("product_code must be at most 128 characters")
+        return normalized
+
+    def _validate_payment_plan_values(self, principal: float | Decimal, discount_rate: float | Decimal) -> None:
+        principal_value = self._to_decimal(principal)
+        discount_value = self._to_decimal(discount_rate)
+        if principal_value <= Decimal('0'):
+            raise BusinessRuleViolation("principal must be greater than zero")
+        if discount_value < Decimal('0'):
+            raise BusinessRuleViolation("discount_rate must be zero or positive")
+
+    def _validate_payment_plan_installments(
+        self,
+        installments: Sequence[PaymentPlanInstallmentInput],
+    ) -> list[PaymentPlanInstallmentInput]:
+        if not installments:
+            raise BusinessRuleViolation("Payment plan must include at least one installment")
+        seen: set[int] = set()
+        validated: list[PaymentPlanInstallmentInput] = []
+        for item in installments:
+            if item.period < 1:
+                raise BusinessRuleViolation("Installment period must be at least 1")
+            if item.amount <= 0:
+                raise BusinessRuleViolation("Installment amount must be greater than zero")
+            if item.period in seen:
+                raise BusinessRuleViolation("Installment periods must be unique")
+            seen.add(item.period)
+            validated.append(item)
+        validated.sort(key=lambda value: value.period)
+        return validated
+
+    @staticmethod
+    def _to_decimal(value: float | Decimal | int) -> Decimal:
+        if isinstance(value, Decimal):
+            return value
+        return Decimal(str(value))
+
     def _get_plan(self, plan_id: UUID, *, allow_inactive: bool = False) -> CommercialPlan:
         stmt = select(CommercialPlan).where(CommercialPlan.id == plan_id)
         plan = self.session.execute(stmt).scalar_one_or_none()
@@ -757,3 +947,14 @@ class AdministrationService:
         except Exception:  # pragma: no cover - defensive rollback
             self.session.rollback()
             raise
+
+
+
+
+
+
+
+
+
+
+

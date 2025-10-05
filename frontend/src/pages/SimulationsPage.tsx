@@ -1,9 +1,9 @@
-import { FormEvent, useState } from 'react';
+﻿import { FormEvent, useMemo, useState } from 'react';
 
 import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../hooks/useAuth';
 import { createSimulation } from '../api/simulations';
-import type { SimulationRequest, SimulationResponse } from '../api/types';
+import type { SimulationBatchRequest, SimulationBatchResponse, SimulationOutcome } from '../api/types';
 import './SimulationsPage.css';
 
 interface InstallmentRow {
@@ -11,20 +11,43 @@ interface InstallmentRow {
   amount: number;
 }
 
-const DEFAULT_INSTALLMENTS: InstallmentRow[] = [
+interface PlanFormState {
+  key: string;
+  label: string;
+  productCode: string;
+  principal: number;
+  discountRate: number;
+  installments: InstallmentRow[];
+}
+
+const createDefaultInstallments = (): InstallmentRow[] => [
   { period: 1, amount: 1000 },
   { period: 2, amount: 1000 },
   { period: 3, amount: 1000 },
 ];
 
+const createPlanState = (index: number): PlanFormState => ({
+  key: `plan-${Date.now()}-${index}`,
+  label: '',
+  productCode: '',
+  principal: 3000,
+  discountRate: 0.015,
+  installments: createDefaultInstallments(),
+});
+
+const formatCurrency = (value: number): string =>
+  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const formatMonths = (value: number): string => value.toFixed(2);
+
 export default function SimulationsPage() {
   const { tenantId, accessToken } = useAuth();
-  const [principal, setPrincipal] = useState(3000);
-  const [discountRate, setDiscountRate] = useState(0.015);
-  const [installments, setInstallments] = useState<InstallmentRow[]>(DEFAULT_INSTALLMENTS);
-  const [result, setResult] = useState<SimulationResponse | null>(null);
+  const [plans, setPlans] = useState<PlanFormState[]>([createPlanState(0)]);
+  const [result, setResult] = useState<SimulationBatchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const canRemovePlan = useMemo(() => plans.length > 1, [plans.length]);
 
   if (!tenantId || !accessToken) {
     return (
@@ -34,43 +57,99 @@ export default function SimulationsPage() {
     );
   }
 
-  const updateInstallment = (index: number, key: keyof InstallmentRow, value: number) => {
-    setInstallments((rows) => {
-      const next = [...rows];
-      next[index] = { ...next[index], [key]: value };
+  const updatePlanField = (planIndex: number, field: keyof Omit<PlanFormState, 'installments' | 'key'>, value: string | number) => {
+    setPlans((current) => {
+      const next = [...current];
+      const plan = { ...next[planIndex] };
+      if (field === 'principal' || field === 'discountRate') {
+        plan[field] = Number(value);
+      } else {
+        plan[field] = value as string;
+      }
+      next[planIndex] = plan;
       return next;
     });
   };
 
-  const addInstallment = () => {
-    setInstallments((rows) => [
-      ...rows,
-      {
-        period: rows.length ? rows[rows.length - 1].period + 1 : 1,
-        amount: rows.length ? rows[rows.length - 1].amount : 1000,
-      },
-    ]);
+  const updateInstallment = (planIndex: number, installmentIndex: number, field: keyof InstallmentRow, value: number) => {
+    setPlans((current) => {
+      const next = [...current];
+      const plan = { ...next[planIndex] };
+      const installments = [...plan.installments];
+      installments[installmentIndex] = { ...installments[installmentIndex], [field]: value };
+      plan.installments = installments;
+      next[planIndex] = plan;
+      return next;
+    });
   };
 
-  const removeInstallment = (index: number) => {
-    setInstallments((rows) => rows.filter((_, idx) => idx !== index));
+  const addInstallment = (planIndex: number) => {
+    setPlans((current) => {
+      const next = [...current];
+      const plan = { ...next[planIndex] };
+      const installments = [...plan.installments];
+      const last = installments[installments.length - 1];
+      installments.push({
+        period: last ? last.period + 1 : 1,
+        amount: last ? last.amount : 1000,
+      });
+      plan.installments = installments;
+      next[planIndex] = plan;
+      return next;
+    });
+  };
+
+  const removeInstallment = (planIndex: number, installmentIndex: number) => {
+    setPlans((current) => {
+      const next = [...current];
+      const plan = { ...next[planIndex] };
+      plan.installments = plan.installments.filter((_, idx) => idx !== installmentIndex);
+      next[planIndex] = plan;
+      return next;
+    });
+  };
+
+  const addPlan = () => {
+    setPlans((current) => [...current, createPlanState(current.length + 1)]);
+    setResult(null);
+  };
+
+  const removePlan = (planIndex: number) => {
+    if (!canRemovePlan) {
+      return;
+    }
+    setPlans((current) => current.filter((_, index) => index !== planIndex));
+    setResult(null);
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!installments.length) {
-      setError('Inclua pelo menos uma parcela.');
+
+    if (!plans.length) {
+      setError('Inclua pelo menos um plano para simular.');
       return;
     }
-    const payload: SimulationRequest = {
-      principal: Number(principal),
-      discount_rate: Number(discountRate),
-      installments: installments.map((item) => ({
-        period: Number(item.period),
-        amount: Number(item.amount),
+
+    if (plans.some((plan) => plan.installments.length === 0)) {
+      setError('Inclua pelo menos uma parcela em cada plano.');
+      return;
+    }
+
+    const payload: SimulationBatchRequest = {
+      plans: plans.map((plan) => ({
+        key: plan.key,
+        label: plan.label.trim() || undefined,
+        product_code: plan.productCode.trim() || undefined,
+        principal: Number(plan.principal),
+        discount_rate: Number(plan.discountRate),
+        installments: plan.installments.map((item) => ({
+          period: Number(item.period),
+          amount: Number(item.amount),
+        })),
       })),
     };
+
     try {
       setSubmitting(true);
       const response = await createSimulation(tenantId, accessToken, payload);
@@ -84,117 +163,183 @@ export default function SimulationsPage() {
     }
   };
 
+  const renderOutcomeRow = (item: SimulationOutcome, index: number) => {
+    const label = item.label ?? (item.source === 'template' ? 'Plano padronizado' : `Plano ${index + 1}`);
+    const product = item.product_code ?? '—';
+    const key = `${item.source}-${item.template_id ?? item.plan_key ?? index}`;
+
+    return (
+      <tr key={key}>
+        <td>{item.source === 'template' ? 'Padronizado' : 'Informado'}</td>
+        <td>{label}</td>
+        <td>{product}</td>
+        <td>{formatCurrency(item.result.present_value)}</td>
+        <td>{formatCurrency(item.result.future_value)}</td>
+        <td>{formatCurrency(item.result.payment)}</td>
+        <td>{formatCurrency(item.result.average_installment)}</td>
+        <td>{formatMonths(item.result.mean_term_months)}</td>
+      </tr>
+    );
+  };
+
   return (
     <div className="stack">
       <PageHeader
         title="Simulações financeiras"
-        subtitle="Monte planos de pagamento e avalie métricas-chave automaticamente."
+        subtitle="Monte e compare planos de pagamento informados e padronizados em uma única chamada."
       />
       <form className="card stack" onSubmit={handleSubmit}>
-        <div className="grid two">
-          <div className="form-field">
-            <label htmlFor="principal">Valor total (principal)</label>
-            <input
-              id="principal"
-              type="number"
-              min="0"
-              step="0.01"
-              value={principal}
-              onChange={(event) => setPrincipal(Number(event.target.value))}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="discountRate">Taxa de desconto mensal</label>
-            <input
-              id="discountRate"
-              type="number"
-              min="0"
-              step="0.0001"
-              value={discountRate}
-              onChange={(event) => setDiscountRate(Number(event.target.value))}
-            />
-            <small>Use valores decimais. Ex.: 0.015 = 1.5% ao mês.</small>
-          </div>
+        <div className="form-actions">
+          <button type="button" className="button ghost" onClick={addPlan}>
+            Adicionar plano
+          </button>
         </div>
-        <section className="installments">
-          <header>
-            <h2>Parcelas</h2>
-            <button type="button" className="button ghost" onClick={addInstallment}>
-              Adicionar parcela
-            </button>
-          </header>
-          <div className="installments-grid">
-            {installments.map((item, index) => (
-              <div key={`installment-${index}`} className="installment-row">
-                <div className="form-field">
-                  <label>Período</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.period}
-                    onChange={(event) => updateInstallment(index, 'period', Number(event.target.value))}
-                  />
-                </div>
-                <div className="form-field">
-                  <label>Valor</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.amount}
-                    onChange={(event) => updateInstallment(index, 'amount', Number(event.target.value))}
-                  />
-                </div>
+        {plans.map((plan, planIndex) => (
+          <section key={plan.key} className="stack plan-section">
+            <header className="plan-header">
+              <h2>Plano {planIndex + 1}</h2>
+              <div className="plan-controls">
                 <button
                   type="button"
-                  className="remove"
-                  onClick={() => removeInstallment(index)}
-                  aria-label="Remover parcela"
-                  disabled={installments.length === 1}
+                  className="button ghost"
+                  onClick={() => addInstallment(planIndex)}
                 >
-                  ✕
+                  Adicionar parcela
+                </button>
+                <button
+                  type="button"
+                  className="button ghost"
+                  onClick={() => removePlan(planIndex)}
+                  disabled={!canRemovePlan}
+                >
+                  Remover plano
                 </button>
               </div>
-            ))}
-          </div>
-        </section>
+            </header>
+            <div className="grid three">
+              <div className="form-field">
+                <label htmlFor={`label-${plan.key}`}>Nome do plano</label>
+                <input
+                  id={`label-${plan.key}`}
+                  type="text"
+                  value={plan.label}
+                  maxLength={64}
+                  onChange={(event) => updatePlanField(planIndex, 'label', event.target.value)}
+                  placeholder="Ex.: Oferta especial"
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor={`product-${plan.key}`}>Produto (código)</label>
+                <input
+                  id={`product-${plan.key}`}
+                  type="text"
+                  value={plan.productCode}
+                  maxLength={128}
+                  onChange={(event) => updatePlanField(planIndex, 'productCode', event.target.value)}
+                  placeholder="Ex.: APTO-101"
+                />
+                <small>Informe para comparar com o plano padronizado correspondente.</small>
+              </div>
+            </div>
+            <div className="grid two">
+              <div className="form-field">
+                <label htmlFor={`principal-${plan.key}`}>Valor total (principal)</label>
+                <input
+                  id={`principal-${plan.key}`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={plan.principal}
+                  onChange={(event) => updatePlanField(planIndex, 'principal', Number(event.target.value))}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor={`discount-${plan.key}`}>Taxa de desconto mensal</label>
+                <input
+                  id={`discount-${plan.key}`}
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  value={plan.discountRate}
+                  onChange={(event) => updatePlanField(planIndex, 'discountRate', Number(event.target.value))}
+                />
+                <small>Use valores decimais. Ex.: 0.015 = 1.5% ao mês.</small>
+              </div>
+            </div>
+            <div className="installments">
+              <h3>Parcelas</h3>
+              <div className="installments-grid">
+                {plan.installments.map((item, installmentIndex) => (
+                  <div key={`installment-${plan.key}-${installmentIndex}`} className="installment-row">
+                    <div className="form-field">
+                      <label>Período</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.period}
+                        onChange={(event) =>
+                          updateInstallment(planIndex, installmentIndex, 'period', Number(event.target.value))
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Valor</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.amount}
+                        onChange={(event) =>
+                          updateInstallment(planIndex, installmentIndex, 'amount', Number(event.target.value))
+                        }
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="remove"
+                      onClick={() => removeInstallment(planIndex, installmentIndex)}
+                      aria-label="Remover parcela"
+                      disabled={plan.installments.length === 1}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ))}
         {error && <div className="alert error">{error}</div>}
         <button className="button" type="submit" disabled={submitting}>
-          {submitting ? 'Calculando...' : 'Calcular plano'}
+          {submitting ? 'Calculando...' : 'Calcular comparativo'}
         </button>
       </form>
       {result && (
         <section className="card simulation-result">
           <header>
-            <h2>Resultado</h2>
-            <span className="badge">PV = {result.result.present_value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            <h2>Resultado comparativo</h2>
+            <span className="badge">{result.outcomes.length} combinação(ões)</span>
           </header>
-          <div className="grid two">
-            <div>
-              <span className="label">Valor Futuro (FV)</span>
-              <p className="value">
-                {result.result.future_value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </p>
-            </div>
-            <div>
-              <span className="label">Parcela equivalente (PMT)</span>
-              <p className="value">
-                {result.result.payment.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </p>
-            </div>
-            <div>
-              <span className="label">Parcela média</span>
-              <p className="value">
-                {result.result.average_installment.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </p>
-            </div>
-            <div>
-              <span className="label">Prazo médio (meses)</span>
-              <p className="value">{result.result.mean_term_months.toFixed(2)}</p>
-            </div>
+          <div className="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Origem</th>
+                  <th>Plano</th>
+                  <th>Produto</th>
+                  <th>PV</th>
+                  <th>FV</th>
+                  <th>PMT</th>
+                  <th>Parcela média</th>
+                  <th>Prazo médio (meses)</th>
+                </tr>
+              </thead>
+              <tbody>{result.outcomes.map(renderOutcomeRow)}</tbody>
+            </table>
           </div>
         </section>
       )}
     </div>
   );
 }
+

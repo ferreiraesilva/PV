@@ -1,4 +1,4 @@
-.installments {
+﻿.installments {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -56,4 +56,48 @@
   margin: 6px 0 0;
   font-size: 16px;
   color: #0f172a;
+}\r\n\r\n.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.plan-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  background: #f8fafc;
+  gap: 16px;
+}
+
+.plan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.plan-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-responsive table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-responsive th,
+.table-responsive td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-responsive tbody tr:nth-child(even) {
+  background: #f1f5f9;
 }

@@ -1,3 +1,4 @@
+﻿from uuid import UUID
 import uuid
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -349,4 +350,159 @@ def test_confirm_password_reset_calls_service(client, superadmin_headers, _clear
     assert response.status_code == 200
     assert captured["token"] == "abc"
     assert captured["password"] == "Secret123"
+
+
+def test_create_payment_plan_template_requires_admin(client, auth_headers, _clear_overrides):
+    response = client.post(
+        f"/v1/t/{TENANT_ID}/admin/payment-plans",
+        headers=auth_headers,
+        json={
+            "productCode": "vip",
+            "principal": 5000,
+            "discountRate": 0.02,
+            "installments": [{"period": 1, "amount": 2500}],
+        },
+    )
+    assert response.status_code == 403
+
+
+def test_create_payment_plan_template_returns_payload(client, superadmin_headers, _clear_overrides):
+    captured = {}
+
+    class StubService:
+        def create_payment_plan_template(self, acting_user, tenant_id, payload):
+            captured["acting_user"] = acting_user
+            captured["tenant_id"] = tenant_id
+            captured["payload"] = payload
+            now = datetime.now(timezone.utc)
+            return SimpleNamespace(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                product_code=payload.product_code,
+                name=payload.name,
+                description=payload.description,
+                principal=payload.principal,
+                discount_rate=payload.discount_rate,
+                metadata_json=payload.metadata,
+                is_active=payload.is_active,
+                created_at=now,
+                updated_at=now,
+                installments=[
+                    SimpleNamespace(id=uuid.uuid4(), period=item.period, amount=item.amount)
+                    for item in payload.installments
+                ],
+            )
+
+    app.dependency_overrides[get_administration_service] = lambda: StubService()
+
+    payload = {
+        "productCode": "vip",
+        "label": "Plano VIP",
+        "principal": 6000,
+        "discountRate": 0.025,
+        "installments": [
+            {"period": 1, "amount": 3000},
+            {"period": 2, "amount": 3200},
+        ],
+    }
+    response = client.post(
+        f"/v1/t/{TENANT_ID}/admin/payment-plans",
+        headers=superadmin_headers,
+        json=payload,
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["productCode"] == "vip"
+    assert len(body["installments"]) == 2
+    assert captured["tenant_id"] == UUID(TENANT_ID)
+
+
+def test_list_payment_plan_templates_returns_collection(client, superadmin_headers, _clear_overrides):
+    expected = [
+        SimpleNamespace(
+            id=uuid.uuid4(),
+            tenant_id=UUID(TENANT_ID),
+            product_code="standard",
+            name="Plano Standard",
+            description=None,
+            principal=4000,
+            discount_rate=0.015,
+            metadata_json=None,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+            installments=[
+                SimpleNamespace(id=uuid.uuid4(), period=1, amount=2000),
+                SimpleNamespace(id=uuid.uuid4(), period=2, amount=2100),
+            ],
+        )
+    ]
+
+    class StubService:
+        def list_payment_plan_templates(self, acting_user, tenant_id, include_inactive: bool = False):
+            return expected
+
+    app.dependency_overrides[get_administration_service] = lambda: StubService()
+
+    response = client.get(
+        f"/v1/t/{TENANT_ID}/admin/payment-plans",
+        headers=superadmin_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["productCode"] == "standard"
+
+
+def test_update_payment_plan_template_calls_service(client, superadmin_headers, _clear_overrides):
+    captured = {}
+    template_id = uuid.uuid4()
+
+    class StubService:
+        def update_payment_plan_template(self, acting_user, tenant_id, update_id, payload):
+            captured["tenant_id"] = tenant_id
+            captured["update_id"] = update_id
+            captured["payload"] = payload
+            now = datetime.now(timezone.utc)
+            return SimpleNamespace(
+                id=update_id,
+                tenant_id=tenant_id,
+                product_code="standard",
+                name=payload.name,
+                description=payload.description,
+                principal=payload.principal or 5000,
+                discount_rate=payload.discount_rate or 0.02,
+                metadata_json=payload.metadata,
+                is_active=payload.is_active if payload.is_active is not None else True,
+                created_at=now,
+                updated_at=now,
+                installments=[
+                    SimpleNamespace(id=uuid.uuid4(), period=item.period, amount=item.amount)
+                    for item in (payload.installments or [])
+                ] or [SimpleNamespace(id=uuid.uuid4(), period=1, amount=2500)],
+            )
+
+    app.dependency_overrides[get_administration_service] = lambda: StubService()
+
+    response = client.patch(
+        f"/v1/t/{TENANT_ID}/admin/payment-plans/{template_id}",
+        headers=superadmin_headers,
+        json={
+            "name": "Plano Renovado",
+            "principal": 7000,
+            "installments": [
+                {"period": 1, "amount": 3500},
+                {"period": 2, "amount": 3600},
+            ],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Plano Renovado"
+    assert captured["tenant_id"] == UUID(TENANT_ID)
+    assert captured["update_id"] == template_id
+    assert len(body["installments"]) == 2
+
+
+
 

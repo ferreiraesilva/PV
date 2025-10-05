@@ -1,4 +1,4 @@
-export interface TokenPairResponse {
+﻿export interface TokenPairResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
@@ -14,10 +14,23 @@ export interface SimulationInstallment {
   amount: number;
 }
 
-export interface SimulationRequest {
+export interface SimulationPlanPayload {
+  key?: string;
+  label?: string;
+  product_code?: string;
   principal: number;
   discount_rate: number;
   installments: SimulationInstallment[];
+}
+
+export interface SimulationTemplateReference {
+  template_id?: string;
+  product_code?: string;
+}
+
+export interface SimulationBatchRequest {
+  plans: SimulationPlanPayload[];
+  templates?: SimulationTemplateReference[];
 }
 
 export interface SimulationResult {
@@ -28,10 +41,25 @@ export interface SimulationResult {
   mean_term_months: number;
 }
 
-export interface SimulationResponse {
-  tenant_id: string;
-  plan: SimulationRequest;
+export interface SimulationPlanSnapshot {
+  principal: number;
+  discount_rate: number;
+  installments: SimulationInstallment[];
+}
+
+export interface SimulationOutcome {
+  source: 'input' | 'template';
+  plan_key?: string | null;
+  label?: string | null;
+  product_code?: string | null;
+  template_id?: string | null;
   result: SimulationResult;
+  plan: SimulationPlanSnapshot;
+}
+
+export interface SimulationBatchResponse {
+  tenant_id: string;
+  outcomes: SimulationOutcome[];
 }
 
 export interface ValuationCashflowInput {
@@ -194,3 +222,4 @@ export interface PasswordResetTokenPayload {
   token: string;
   expiresAt: string;
 }
+

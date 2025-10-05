@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 from uuid import UUID
 
 import pytest
@@ -8,12 +8,23 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.roles import SUPERADMIN_ROLE, TENANT_ADMIN_ROLE, TENANT_USER_ROLE
 from app.core.security import verify_password
 from app.db.base import Base
-from app.db.models import CommercialPlan, Tenant, TenantCompany, TenantPlanSubscription, User
+from app.db.models import (
+    CommercialPlan,
+    PaymentPlanInstallment,
+    PaymentPlanTemplate,
+    Tenant,
+    TenantCompany,
+    TenantPlanSubscription,
+    User,
+)
 from app.services.administration import (
     ActingUser,
     AdministrationService,
     BusinessRuleViolation,
     CompanyInput,
+    PaymentPlanInstallmentInput,
+    PaymentPlanTemplateCreateInput,
+    PaymentPlanTemplateUpdateInput,
     PlanCreateInput,
     PlanUpdateInput,
     TenantCreateInput,
@@ -31,6 +42,8 @@ def session() -> Session:
         CommercialPlan.__table__,
         TenantPlanSubscription.__table__,
         User.__table__,
+        PaymentPlanTemplate.__table__,
+        PaymentPlanInstallment.__table__,
     ]
     Base.metadata.create_all(engine, tables=tables)
     TestingSession = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
@@ -360,3 +373,98 @@ def test_list_tenants_scopes_for_admin(service: AdministrationService, default_t
 
     tenants_for_super = service.list_tenants(superadmin)
     assert {t.slug for t in tenants_for_super} >= {tenant.slug, default_tenant.slug}
+
+
+def _create_template(service: AdministrationService, tenant: Tenant, actor: ActingUser, code: str = "plan-basic"):
+    return service.create_payment_plan_template(
+        actor,
+        tenant.id,
+        PaymentPlanTemplateCreateInput(
+            product_code=code,
+            principal=5000,
+            discount_rate=0.02,
+            name="Plano Básico",
+            installments=[
+                PaymentPlanInstallmentInput(period=1, amount=2500),
+                PaymentPlanInstallmentInput(period=2, amount=2600),
+            ],
+        ),
+    )
+
+
+def test_create_payment_plan_template_persists_entities(
+    service: AdministrationService,
+    default_tenant: Tenant,
+    superadmin: ActingUser,
+) -> None:
+    template = _create_template(service, default_tenant, superadmin)
+
+    stored = service.session.execute(
+        select(PaymentPlanTemplate).where(PaymentPlanTemplate.id == template.id)
+    ).unique().scalar_one()
+    assert stored.product_code == "plan-basic"
+    assert len(stored.installments) == 2
+    assert {item.period for item in stored.installments} == {1, 2}
+
+
+def test_list_payment_plan_templates_filters_inactive(
+    service: AdministrationService,
+    default_tenant: Tenant,
+    superadmin: ActingUser,
+) -> None:
+    active = _create_template(service, default_tenant, superadmin, code="plan-active")
+    inactive = service.create_payment_plan_template(
+        superadmin,
+        default_tenant.id,
+        PaymentPlanTemplateCreateInput(
+            product_code="plan-inactive",
+            principal=4000,
+            discount_rate=0.01,
+            is_active=False,
+            installments=[PaymentPlanInstallmentInput(period=1, amount=4000)],
+        ),
+    )
+
+    active_list = service.list_payment_plan_templates(superadmin, default_tenant.id)
+    assert [template.product_code for template in active_list] == [active.product_code]
+
+    everything = service.list_payment_plan_templates(
+        superadmin,
+        default_tenant.id,
+        include_inactive=True,
+    )
+    codes = {template.product_code for template in everything}
+    assert codes == {active.product_code, inactive.product_code}
+
+
+def test_update_payment_plan_template_replaces_installments(
+    service: AdministrationService,
+    default_tenant: Tenant,
+    superadmin: ActingUser,
+) -> None:
+    template = _create_template(service, default_tenant, superadmin)
+
+    updated = service.update_payment_plan_template(
+        superadmin,
+        default_tenant.id,
+        template.id,
+        PaymentPlanTemplateUpdateInput(
+            name="Plano Atualizado",
+            principal=6000,
+            installments=[
+                PaymentPlanInstallmentInput(period=1, amount=2000),
+                PaymentPlanInstallmentInput(period=2, amount=2000),
+                PaymentPlanInstallmentInput(period=3, amount=2000),
+            ],
+        ),
+    )
+
+    assert updated.name == "Plano Atualizado"
+    assert float(updated.principal) == 6000
+    assert len(updated.installments) == 3
+    assert {item.period for item in updated.installments} == {1, 2, 3}
+
+
+
+
+

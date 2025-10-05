@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.api.schemas.user import User as UserResponse
 from app.api.schemas.user import UserCreate, UserPatch
@@ -172,6 +172,63 @@ class UserSuspendRequest(BaseModel):
 
 class UserReinstateRequest(BaseModel):
     reactivate: bool = False
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PaymentPlanInstallmentItem(BaseModel):
+    period: int = Field(..., ge=1)
+    amount: float = Field(..., gt=0)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PaymentPlanTemplateCreateRequest(BaseModel):
+    productCode: str = Field(..., min_length=1, max_length=128)
+    principal: float = Field(..., gt=0)
+    discountRate: float = Field(..., ge=0)
+    name: Optional[str] = None
+    description: Optional[str] = None
+    metadata: Optional[dict[str, Any]] = None
+    isActive: bool = True
+    installments: List[PaymentPlanInstallmentItem]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PaymentPlanTemplateUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    principal: Optional[float] = Field(None, gt=0)
+    discountRate: Optional[float] = Field(None, ge=0)
+    metadata: Optional[dict[str, Any]] = None
+    isActive: Optional[bool] = None
+    installments: Optional[List[PaymentPlanInstallmentItem]] = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PaymentPlanInstallmentResponse(BaseModel):
+    id: UUID
+    period: int
+    amount: float
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PaymentPlanTemplateResponse(BaseModel):
+    id: UUID
+    tenantId: UUID
+    productCode: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    principal: float
+    discountRate: float
+    metadata: Optional[dict[str, Any]] = None
+    isActive: bool
+    createdAt: datetime
+    updatedAt: datetime
+    installments: List[PaymentPlanInstallmentResponse]
 
     model_config = ConfigDict(populate_by_name=True)
 

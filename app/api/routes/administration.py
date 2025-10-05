@@ -14,6 +14,10 @@ from app.api.schemas.administration import (
     PlanAssignRequest,
     PlanCreateRequest,
     PlanUpdateRequest,
+    PaymentPlanTemplateCreateRequest,
+    PaymentPlanTemplateResponse,
+    PaymentPlanTemplateUpdateRequest,
+    PaymentPlanInstallmentResponse,
     TenantCompaniesAttachRequest,
     TenantCompanyResponse,
     TenantCreateRequest,
@@ -35,6 +39,9 @@ from app.services.administration import (
     PermissionDeniedError,
     PlanCreateInput,
     PlanUpdateInput,
+    PaymentPlanInstallmentInput,
+    PaymentPlanTemplateCreateInput,
+    PaymentPlanTemplateUpdateInput,
     TenantCreateInput,
     UserInput,
     UserUpdateInput,
@@ -140,6 +147,30 @@ def _plan_response(plan) -> CommercialPlanResponse:
         billingCycleMonths=plan.billing_cycle_months,
         createdAt=plan.created_at,
         updatedAt=plan.updated_at,
+    )
+
+
+def _payment_plan_template_response(template) -> PaymentPlanTemplateResponse:
+    return PaymentPlanTemplateResponse(
+        id=template.id,
+        tenantId=template.tenant_id,
+        productCode=template.product_code,
+        name=template.name,
+        description=template.description,
+        principal=float(template.principal),
+        discountRate=float(template.discount_rate),
+        metadata=template.metadata_json,
+        isActive=template.is_active,
+        createdAt=template.created_at,
+        updatedAt=template.updated_at,
+        installments=[
+            PaymentPlanInstallmentResponse(
+                id=item.id,
+                period=item.period,
+                amount=float(item.amount),
+            )
+            for item in template.installments
+        ],
     )
 
 
@@ -309,6 +340,109 @@ def create_plan(
         _handle_service_error(exc)
     response = _plan_response(plan)
     _audit_entity(request, resource_type="commercial_plan", resource_id=plan.id, payload=response)
+    return response
+
+
+@router.get(
+    "/t/{tenant_id}/admin/payment-plans",
+    response_model=list[PaymentPlanTemplateResponse],
+)
+def list_payment_plan_templates(
+    request: Request,
+    tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
+    service: ServiceDependency,
+    include_inactive: bool = Query(False),
+    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+) -> list[PaymentPlanTemplateResponse]:
+    _set_audit_actor(request, current_user)
+    acting = _acting_user(current_user)
+    try:
+        templates = service.list_payment_plan_templates(acting, UUID(tenant_id), include_inactive=include_inactive)
+    except Exception as exc:  # pragma: no cover - thin mapping
+        _handle_service_error(exc)
+    responses = [_payment_plan_template_response(template) for template in templates]
+    _audit_collection(request, resource_type="payment_plan_template", count=len(responses))
+    return responses
+
+
+@router.post(
+    "/t/{tenant_id}/admin/payment-plans",
+    response_model=PaymentPlanTemplateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_payment_plan_template(
+    request: Request,
+    tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
+    payload: PaymentPlanTemplateCreateRequest,
+    service: ServiceDependency,
+    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+) -> PaymentPlanTemplateResponse:
+    _set_audit_actor(request, current_user)
+    acting = _acting_user(current_user)
+    try:
+        template = service.create_payment_plan_template(
+            acting,
+            UUID(tenant_id),
+            PaymentPlanTemplateCreateInput(
+                product_code=payload.productCode,
+                principal=payload.principal,
+                discount_rate=payload.discountRate,
+                name=payload.name,
+                description=payload.description,
+                metadata=payload.metadata,
+                is_active=payload.isActive,
+                installments=[
+                    PaymentPlanInstallmentInput(period=item.period, amount=item.amount)
+                    for item in payload.installments
+                ],
+            ),
+        )
+    except Exception as exc:  # pragma: no cover - thin mapping
+        _handle_service_error(exc)
+    response = _payment_plan_template_response(template)
+    _audit_entity(request, resource_type="payment_plan_template", resource_id=template.id, payload=response)
+    return response
+
+
+@router.patch(
+    "/t/{tenant_id}/admin/payment-plans/{template_id}",
+    response_model=PaymentPlanTemplateResponse,
+)
+def update_payment_plan_template(
+    request: Request,
+    tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
+    template_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
+    payload: PaymentPlanTemplateUpdateRequest,
+    service: ServiceDependency,
+    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+) -> PaymentPlanTemplateResponse:
+    _set_audit_actor(request, current_user)
+    acting = _acting_user(current_user)
+    installments = None
+    if payload.installments is not None:
+        installments = [
+            PaymentPlanInstallmentInput(period=item.period, amount=item.amount)
+            for item in payload.installments
+        ]
+    try:
+        template = service.update_payment_plan_template(
+            acting,
+            UUID(tenant_id),
+            UUID(template_id),
+            PaymentPlanTemplateUpdateInput(
+                name=payload.name,
+                description=payload.description,
+                principal=payload.principal,
+                discount_rate=payload.discountRate,
+                metadata=payload.metadata,
+                is_active=payload.isActive,
+                installments=installments,
+            ),
+        )
+    except Exception as exc:  # pragma: no cover - thin mapping
+        _handle_service_error(exc)
+    response = _payment_plan_template_response(template)
+    _audit_entity(request, resource_type="payment_plan_template", resource_id=template.id, payload=response)
     return response
 
 
