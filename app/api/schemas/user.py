@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr
@@ -17,6 +17,7 @@ class UserBase(BaseModel):
 class User(UserBase):
     id: str
     tenantId: str
+    isSuspended: bool = False
     createdAt: datetime
     updatedAt: datetime
 

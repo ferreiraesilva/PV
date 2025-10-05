@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core import security
+from app.audit import service as audit_service
 from app.api.routes import benchmarking as benchmarking_routes
 from app.core.config import get_settings
 from app.core.security import create_access_token
@@ -62,3 +64,40 @@ def auth_headers() -> dict[str, str]:
         extra_claims={"tenant_id": TENANT_ID, "roles": ["user"]},
     )
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture()
+def superadmin_headers() -> dict[str, str]:
+    token = create_access_token(
+        subject=USER_ID,
+        extra_claims={"tenant_id": TENANT_ID, "roles": ["superadm"]},
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest.fixture(autouse=True)
+def _stub_password_context():
+    original = security.pwd_context
+    class _InlineContext:
+        @staticmethod
+        def hash(secret: str) -> str:
+            return f'hashed:{secret}'
+
+        @staticmethod
+        def verify(plain: str, hashed: str) -> bool:
+            return hashed == f'hashed:{plain}'
+
+    security.pwd_context = _InlineContext()
+    try:
+        yield
+    finally:
+        security.pwd_context = original
+
+
+@pytest.fixture(autouse=True)
+def _noop_audit_persistence():
+    original = audit_service.AuditService.persist
+    audit_service.AuditService.persist = lambda self, record: None
+    try:
+        yield
+    finally:
+        audit_service.AuditService.persist = original

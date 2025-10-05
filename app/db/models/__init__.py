@@ -1,6 +1,17 @@
 from app.db.models.audit_log import AuditLog
+from app.db.models.commercial_plan import CommercialPlan
 from app.db.models.refresh_token import RefreshToken
 from app.db.models.tenant import Tenant
+from app.db.models.tenant_company import TenantCompany
+from app.db.models.tenant_plan_subscription import TenantPlanSubscription
 from app.db.models.user import User
 
-__all__ = ["AuditLog", "RefreshToken", "Tenant", "User"]
+__all__ = [
+    "AuditLog",
+    "CommercialPlan",
+    "RefreshToken",
+    "Tenant",
+    "TenantCompany",
+    "TenantPlanSubscription",
+    "User",
+]

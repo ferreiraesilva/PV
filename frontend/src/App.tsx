@@ -9,6 +9,7 @@ import ValuationsPage from './pages/ValuationsPage';
 import BenchmarkingPage from './pages/BenchmarkingPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import AuditPage from './pages/AuditPage';
+import AdministrationPage from './pages/AdministrationPage';
 import { AuthProvider } from './providers/AuthProvider';
 import { useAuth } from './hooks/useAuth';
 
@@ -16,7 +17,7 @@ function ProtectedOutlet() {
   const { isAuthenticated, loading, logout } = useAuth();
 
   if (loading) {
-    return <LoadingScreen message="ValidaÃ§Ã£o de sessÃ£o" />;
+    return <LoadingScreen message="Validação de sessão" />;
   }
 
   if (!isAuthenticated) {
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/benchmarking" element={<BenchmarkingPage />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/audit" element={<AuditPage />} />
+          <Route path="/admin" element={<AdministrationPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -133,3 +133,64 @@ export interface AuditLogEntry {
   endpoint: string;
   statusCode: number;
 }
+
+export interface TenantSummary {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommercialPlan {
+  id: string;
+  tenantId: string;
+  name: string;
+  description?: string | null;
+  maxUsers?: number | null;
+  priceCents?: number | null;
+  currency: string;
+  isActive: boolean;
+  billingCycleMonths: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TenantCompany {
+  id: string;
+  tenantId: string;
+  legalName: string;
+  tradeName?: string | null;
+  taxId: string;
+  billingEmail: string;
+  billingPhone?: string | null;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminUserAccount {
+  id: string;
+  tenantId: string;
+  email: string;
+  fullName?: string | null;
+  roles: string[];
+  isActive: boolean;
+  isSuperuser: boolean;
+  isSuspended?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PasswordResetTokenPayload {
+  token: string;
+  expiresAt: string;
+}
