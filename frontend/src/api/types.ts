@@ -10,8 +10,15 @@ export interface TokenRefreshResponse {
 }
 
 export interface SimulationInstallment {
-  period: number;
+  due_date: string;
   amount: number;
+}
+
+export interface AdjustmentPayload {
+  base_date: string;
+  index: string;
+  periodicity: 'monthly' | 'anniversary';
+  addon_rate: number;
 }
 
 export interface SimulationPlanPayload {
@@ -20,6 +27,7 @@ export interface SimulationPlanPayload {
   product_code?: string;
   principal: number;
   discount_rate: number;
+  adjustment?: AdjustmentPayload;
   installments: SimulationInstallment[];
 }
 
@@ -35,6 +43,7 @@ export interface SimulationBatchRequest {
 
 export interface SimulationResult {
   present_value: number;
+  present_value_adjusted?: number;
   future_value: number;
   payment: number;
   average_installment: number;
@@ -151,6 +160,21 @@ export interface RecommendationRunResponse {
   completedAt?: string | null;
 }
 
+export interface IndexValueInput {
+  reference_date: string;
+  value: number;
+}
+
+export interface IndexValueBatchInput {
+  values: IndexValueInput[];
+}
+
+export interface IndexValueOutput {
+  reference_date: string;
+  value: number;
+  updated_at: string;
+}
+
 export interface AuditLogEntry {
   id: number;
   occurredAt: string;
@@ -222,4 +246,3 @@ export interface PasswordResetTokenPayload {
   token: string;
   expiresAt: string;
 }
-

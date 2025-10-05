@@ -1,5 +1,6 @@
-﻿from __future__ import annotations
+﻿﻿from __future__ import annotations
 
+from datetime import date
 from typing import Iterable
 from uuid import UUID
 
@@ -17,7 +18,8 @@ from app.api.schemas.simulation import (
 )
 from app.db.repositories.payment_plan_template import PaymentPlanTemplateRepository
 from app.db.session import get_db
-from app.services.simulation import SimulationPlan
+from app.services.simulation import AdjustmentLogic, SimulationPlan, _calculate_months_between
+from app.db.repositories.financial_index import FinancialIndexRepository
 
 router = APIRouter(tags=["Simulations"], prefix="/t/{tenant_id}")
 
@@ -36,12 +38,12 @@ def _run_simulation(plan: SimulationPlan) -> SimulationResult:
 
 
 def _snapshot(principal: float, discount_rate: float, installments: Iterable[InstallmentInput]) -> SimulationPlanSnapshot:
-    normalized = [InstallmentInput(period=item.period, amount=item.amount) for item in installments]
+    normalized = [InstallmentInput(due_date=item.due_date, amount=item.amount) for item in installments]
     return SimulationPlanSnapshot(principal=principal, discount_rate=discount_rate, installments=normalized)
 
 
-@router.post("/simulations", response_model=SimulationBatchResponse)
-def create_simulation(
+@router.post("/simulations/batches", response_model=SimulationBatchResponse)
+def create_simulation_batch(
     tenant_id: str,
     payload: SimulationBatchRequest | SimulationInput,
     request: Request,
@@ -60,7 +62,11 @@ def create_simulation(
         plan = SimulationPlan(
             principal=payload.principal,
             discount_rate=payload.discount_rate,
-            periods=[(item.period, item.amount) for item in payload.installments],
+            # Assuming a base date of today if not provided for simple simulation
+            periods=[
+                (_calculate_months_between(date.today(), item.due_date), item.amount)
+                for item in payload.installments
+            ],
         )
         result = _run_simulation(plan)
         response = SimulationBatchResponse(
@@ -82,6 +88,7 @@ def create_simulation(
 
     batch = payload
     repository = PaymentPlanTemplateRepository(db)
+    index_repository = FinancialIndexRepository(db)
 
     requested_ids = {ref.template_id for ref in batch.templates if ref.template_id is not None}
     requested_codes = {ref.product_code.lower() for ref in batch.templates if ref.product_code}
@@ -106,10 +113,30 @@ def create_simulation(
     included_template_ids: set[UUID] = set()
 
     for plan_payload in batch.plans:
+        adjustment_logic = None
+        if plan_payload.adjustment:
+            adjustment_logic = AdjustmentLogic(
+                base_date=plan_payload.adjustment.base_date,
+                index_code=plan_payload.adjustment.index,
+                periodicity=plan_payload.adjustment.periodicity,
+                addon_rate=plan_payload.adjustment.addon_rate,
+                index_repository=index_repository,
+                tenant_id=tenant_uuid,
+            )
+
         plan = SimulationPlan(
             principal=plan_payload.principal,
             discount_rate=plan_payload.discount_rate,
-            periods=[(item.period, item.amount) for item in plan_payload.installments],
+            adjustment_logic=adjustment_logic,
+            periods=[
+                (
+                    _calculate_months_between(
+                        plan_payload.adjustment.base_date if plan_payload.adjustment else date.today(), item.due_date
+                    ),
+                    item.amount,
+                )
+                for item in plan_payload.installments
+            ],
         )
         result = _run_simulation(plan)
         plan_product_code = plan_payload.product_code.strip() if plan_payload.product_code else None
@@ -128,10 +155,15 @@ def create_simulation(
         if plan_product_code:
             template = templates_by_code.get(plan_product_code.lower())
             if template and template.id not in included_template_ids:
+                base_date_for_template = plan_payload.adjustment.base_date if plan_payload.adjustment else date.today()
                 template_plan = SimulationPlan(
                     principal=float(template.principal),
                     discount_rate=float(template.discount_rate),
-                    periods=[(item.period, float(item.amount)) for item in template.installments],
+                    # Templates currently don't have adjustment data in this flow
+                    periods=[
+                        (_calculate_months_between(base_date_for_template, item.due_date), float(item.amount))
+                        for item in template.installments
+                    ],
                 )
                 template_result = _run_simulation(template_plan)
                 outcomes.append(
@@ -145,7 +177,7 @@ def create_simulation(
                             float(template.principal),
                             float(template.discount_rate),
                             [
-                                InstallmentInput(period=item.period, amount=float(item.amount))
+                                InstallmentInput(due_date=item.due_date, amount=float(item.amount))
                                 for item in template.installments
                             ],
                         ),
@@ -167,7 +199,11 @@ def create_simulation(
         template_plan = SimulationPlan(
             principal=float(template.principal),
             discount_rate=float(template.discount_rate),
-            periods=[(item.period, float(item.amount)) for item in template.installments],
+            # Templates currently don't have adjustment data in this flow
+            periods=[
+                (_calculate_months_between(date.today(), item.due_date), float(item.amount))
+                for item in template.installments
+            ],
         )
         template_result = _run_simulation(template_plan)
         outcomes.append(
@@ -181,7 +217,7 @@ def create_simulation(
                     float(template.principal),
                     float(template.discount_rate),
                     [
-                        InstallmentInput(period=item.period, amount=float(item.amount))
+                        InstallmentInput(due_date=item.due_date, amount=float(item.amount))
                         for item in template.installments
                     ],
                 ),
@@ -193,5 +229,3 @@ def create_simulation(
     response = SimulationBatchResponse(tenant_id=tenant_id, outcomes=outcomes)
     _record_audit(request, response)
     return response
-
-

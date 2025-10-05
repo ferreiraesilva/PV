@@ -1,44 +1,18 @@
-import { FormEvent, useState } from 'react';
-
 import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../hooks/useAuth';
+import { useValuations } from '../hooks/useValuations';
 import { evaluateValuation } from '../api/valuations';
 import type { ValuationCashflowInput, ValuationResponse, ValuationScenarioInput } from '../api/types';
 import './ValuationsPage.css';
 
-type CashflowRow = ValuationCashflowInput;
-
-type ScenarioRow = ValuationScenarioInput;
-
-const DEFAULT_CASHFLOWS: CashflowRow[] = [
-  {
-    due_date: new Date().toISOString().slice(0, 10),
-    amount: 15000,
-    probability_default: 0.05,
-    probability_cancellation: 0.02,
-  },
-  {
-    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    amount: 12000,
-    probability_default: 0.07,
-    probability_cancellation: 0.015,
-  },
-];
-
-const DEFAULT_SCENARIOS: ScenarioRow[] = [
-  { code: 'optimista', discount_rate: 0.01, default_multiplier: 0.8, cancellation_multiplier: 0.7 },
-  { code: 'base', discount_rate: 0.015, default_multiplier: 1, cancellation_multiplier: 1 },
-  { code: 'conservador', discount_rate: 0.02, default_multiplier: 1.2, cancellation_multiplier: 1.3 },
-];
-
 export default function ValuationsPage() {
   const { tenantId, accessToken } = useAuth();
-  const [snapshotId, setSnapshotId] = useState('');
-  const [cashflows, setCashflows] = useState<CashflowRow[]>(DEFAULT_CASHFLOWS);
-  const [scenarios, setScenarios] = useState<ScenarioRow[]>(DEFAULT_SCENARIOS);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ValuationResponse | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const {
+    snapshotId, setSnapshotId,
+    cashflows, updateCashflow, addCashflow, removeCashflow,
+    scenarios, updateScenario, addScenario, removeScenario,
+    error, result, submitting, handleSubmit,
+  } = useValuations();
 
   if (!tenantId || !accessToken) {
     return (
@@ -47,83 +21,6 @@ export default function ValuationsPage() {
       </div>
     );
   }
-
-  const updateCashflow = (index: number, key: keyof CashflowRow, value: string) => {
-    setCashflows((rows) => {
-      const next = [...rows];
-      const parsedValue = key === 'due_date' ? value : Number(value);
-      next[index] = { ...next[index], [key]: parsedValue };
-      return next;
-    });
-  };
-
-  const addCashflow = () => {
-    setCashflows((rows) => [
-      ...rows,
-      {
-        due_date: new Date().toISOString().slice(0, 10),
-        amount: 10000,
-        probability_default: 0.05,
-        probability_cancellation: 0.02,
-      },
-    ]);
-  };
-
-  const removeCashflow = (index: number) => {
-    setCashflows((rows) => rows.filter((_, idx) => idx !== index));
-  };
-
-  const updateScenario = (index: number, key: keyof ScenarioRow, value: string) => {
-    setScenarios((rows) => {
-      const next = [...rows];
-      next[index] = { ...next[index], [key]: key === 'code' ? value : Number(value) };
-      return next;
-    });
-  };
-
-  const addScenario = () => {
-    setScenarios((rows) => [
-      ...rows,
-      {
-        code: `cenario-${rows.length + 1}`,
-        discount_rate: 0.02,
-        default_multiplier: 1,
-        cancellation_multiplier: 1,
-      },
-    ]);
-  };
-
-  const removeScenario = (index: number) => {
-    setScenarios((rows) => rows.filter((_, idx) => idx !== index));
-  };
-
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    if (!snapshotId) {
-      setError('Informe o snapshotId que será usado como referência.');
-      return;
-    }
-    if (!cashflows.length || !scenarios.length) {
-      setError('Cadastre ao menos um fluxo de caixa e um cenário.');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const response = await evaluateValuation(tenantId, snapshotId, accessToken, {
-        cashflows,
-        scenarios,
-      });
-      setResult(response);
-    } catch (err) {
-      const message = (err as Error).message ?? 'Erro ao executar valuation.';
-      setError(message);
-      setResult(null);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   return (
     <div className="stack">
@@ -157,7 +54,7 @@ export default function ValuationsPage() {
                   <input
                     type="date"
                     value={item.due_date}
-                    onChange={(event) => updateCashflow(index, 'due_date', event.target.value)}
+                    onChange={(event) => updateCashflow(index, 'due_date', event.target.value as string)}
                   />
                 </div>
                 <div className="form-field">
@@ -167,7 +64,7 @@ export default function ValuationsPage() {
                     min="0"
                     step="0.01"
                     value={item.amount}
-                    onChange={(event) => updateCashflow(index, 'amount', event.target.value)}
+                    onChange={(event) => updateCashflow(index, 'amount', event.target.valueAsNumber || 0)}
                   />
                 </div>
                 <div className="form-field">
@@ -178,7 +75,7 @@ export default function ValuationsPage() {
                     max="1"
                     step="0.001"
                     value={item.probability_default}
-                    onChange={(event) => updateCashflow(index, 'probability_default', event.target.value)}
+                    onChange={(event) => updateCashflow(index, 'probability_default', event.target.valueAsNumber || 0)}
                   />
                 </div>
                 <div className="form-field">
@@ -189,7 +86,7 @@ export default function ValuationsPage() {
                     max="1"
                     step="0.001"
                     value={item.probability_cancellation}
-                    onChange={(event) => updateCashflow(index, 'probability_cancellation', event.target.value)}
+                    onChange={(event) => updateCashflow(index, 'probability_cancellation', event.target.valueAsNumber || 0)}
                   />
                 </div>
                 <button
@@ -218,7 +115,7 @@ export default function ValuationsPage() {
                   <label>Identificador</label>
                   <input
                     value={scenario.code}
-                    onChange={(event) => updateScenario(index, 'code', event.target.value)}
+                    onChange={(event) => updateScenario(index, 'code', event.target.value as string)}
                   />
                 </div>
                 <div className="form-field">
@@ -228,7 +125,7 @@ export default function ValuationsPage() {
                     min="0"
                     step="0.0001"
                     value={scenario.discount_rate}
-                    onChange={(event) => updateScenario(index, 'discount_rate', event.target.value)}
+                    onChange={(event) => updateScenario(index, 'discount_rate', event.target.valueAsNumber || 0)}
                   />
                 </div>
                 <div className="form-field">
@@ -238,7 +135,7 @@ export default function ValuationsPage() {
                     min="0"
                     step="0.01"
                     value={scenario.default_multiplier}
-                    onChange={(event) => updateScenario(index, 'default_multiplier', event.target.value)}
+                    onChange={(event) => updateScenario(index, 'default_multiplier', event.target.valueAsNumber || 0)}
                   />
                 </div>
                 <div className="form-field">
@@ -248,7 +145,7 @@ export default function ValuationsPage() {
                     min="0"
                     step="0.01"
                     value={scenario.cancellation_multiplier}
-                    onChange={(event) => updateScenario(index, 'cancellation_multiplier', event.target.value)}
+                    onChange={(event) => updateScenario(index, 'cancellation_multiplier', event.target.valueAsNumber || 0)}
                   />
                 </div>
                 <button

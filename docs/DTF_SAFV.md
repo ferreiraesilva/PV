@@ -39,8 +39,27 @@ Papéis definidos:
 
 ### 7.1 Simulação de Planos de Pagamento
 - Cadastro de cenários e parâmetros financeiros.  
-- Cálculo automático de PV, PMR e PMV.  
+- Aplicação automática de índices de reajuste (IGPM, IPCA, INCC ou customizados).  
+- Configuração de periodicidade: mensal ou aniversário do contrato.  
+- Possibilidade de acréscimo percentual (ex: INCC + 1%).  
+- **Regra por parcela (override):**  
+  - `fixa` (sem reajuste) ou `indexada` com (indice_base, acrescimo_percentual, periodicidade_reajuste).  
+  - Campo `congelada` para impedir reajuste em períodos definidos.  
+  - **Precedência:** regra_da_parcela > regra_do_contrato > padrão_do_tenant.
+- Cálculo automático do valor futuro reajustado (VF) antes do cálculo do PV.  
+- Cálculo de PV, PMR e PMV com base nos valores corrigidos.  
 - Comparação e exportação de resultados.
+
+#### 7.1.1 Algoritmo (resumo)
+1. Para cada parcela `i`, determinar a **regra efetiva** (aplicando precedência).  
+2. Se `fixa` → `VF_i = valor_original`.  
+3. Se `indexada` → obter série de índices e aplicar:  
+   - **mensal:** multiplicar fator acumulado mês a mês até `data_venc_i`.  
+   - **aniversario:** aplicar fator acumulado somente nos aniversários desde `data_contrato`.  
+   - Considerar `acrescimo_percentual` somado à variação do índice (p.ex. INCC + 1% a.m.).  
+4. Calcular `PV_i = VF_i / (1 + taxa_mensal)^(n_meses(data_base, data_venc_i))`.  
+5. Somar `PV_total = Σ PV_i`.  
+6. Persistir/retornar tabela: (valor_original, regra_aplicada, valor_corrigido=VF_i, PV_i).
 
 ### 7.2 Valoração de Carteira de Recebíveis
 - Importação de dados históricos.  
@@ -58,3 +77,9 @@ Papéis definidos:
 ## 8. Monitoramento e Métricas
 - Métricas de uptime, consumo por tenant e eventos de auditoria.  
 - Alertas automáticos em falhas de login, acessos indevidos ou erros sistêmicos.
+
+## 9. Modelo de Dados (trecho relevante)
+- **Contrato**: id, tenant_id, data_contrato, regra_default (indice_base, acrescimo_percentual, periodicidade)  
+- **Parcela**: id_contrato, num_parcela, data_venc, valor_original,  
+  - tipo_regra (`fixa`|`indexada`), indice_base?, acrescimo_percentual?, periodicidade_reajuste?, congelada?  
+  - campos calculados: valor_corrigido, pv_individual

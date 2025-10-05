@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import administration, auth, benchmarking, health, simulations, valuations
+from app.api.routes import administration, auth, benchmarking, financial_index, health, simulations, valuations
 
 api_router = APIRouter(prefix="/v1")
 api_router.include_router(health.router)
@@ -9,3 +9,4 @@ api_router.include_router(administration.router)
 api_router.include_router(simulations.router)
 api_router.include_router(valuations.router)
 api_router.include_router(benchmarking.router)
+api_router.include_router(financial_index.router)

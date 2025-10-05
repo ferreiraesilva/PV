@@ -14,7 +14,16 @@ Sistema SaaS multi-tenant com módulos de simulação, valoração, benchmarking
 - **RF4:** O sistema deve calcular valores presentes líquidos ajustados por inadimplência e cancelamento.  
 - **RF5:** O sistema deve permitir comparações com benchmarks de mercado anonimizados.  
 - **RF6:** O sistema deve gerar relatórios exportáveis em PDF e Excel.  
-- **RF7:** O sistema deve gerar recomendações automáticas baseadas em modelos preditivos.
+- **RF7:** O sistema deve gerar recomendações automáticas baseadas em modelos preditivos.  
+- **RF8:** O sistema deve aplicar **índices de reajuste (IGPM, IPCA, INCC ou combinações)** às parcelas de contratos de venda futura **antes de calcular o Valor Presente (PV)**.  
+- **RF9:** O sistema deve permitir configurar a periodicidade de aplicação do índice (mensal ou aniversário do contrato) e o percentual adicional (ex: INCC + 1%).  
+- **RF10:** O sistema deve permitir **override de regra de reajuste por parcela**, incluindo:  
+  - tipo_regra: `fixa` (sem reajuste) | `indexada`  
+  - indice_base (quando indexada): IGPM | IPCA | INCC | custom  
+  - acrescimo_percentual (p.ex. +1)  
+  - periodicidade_reajuste: mensal | aniversario  
+  - congelada: boolean (impedir reajuste em períodos específicos)
+- **RF11:** Em cenários com regras mistas (parcelas fixas e indexadas), o cálculo deve respeitar a **regra efetiva da parcela**.
 
 ## 3. Requisitos Não Funcionais
 - **NFR1:** Disponibilidade mínima de 99,5%.  
@@ -31,4 +40,6 @@ Sistema SaaS multi-tenant com módulos de simulação, valoração, benchmarking
 
 ## 5. Suposições e Dependências
 - Integrações futuras com ERPs e CRMs.  
-- Indexadores financeiros atualizados via API externa ou tabela manual.
+- Indexadores financeiros atualizados via API externa ou tabela manual.  
+- Taxas de desconto e índices devem ser parametrizáveis por contrato e cenário de simulação.  
+- Regras por parcela devem sobrescrever as regras do contrato quando presentes.

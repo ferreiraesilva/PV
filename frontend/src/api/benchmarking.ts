@@ -7,14 +7,15 @@ export async function ingestBenchmarkDataset(
   token: string,
   file: File,
 ): Promise<BenchmarkIngestResponse> {
-  const filename = file.name || 'dataset.csv';
+  const formData = new FormData();
+  formData.append('file', file);
+
   return apiFetch<BenchmarkIngestResponse>(
-    `/t/${encodeURIComponent(tenantId)}/benchmarking/batches/${encodeURIComponent(batchId)}/ingest?filename=${encodeURIComponent(filename)}`,
+    `/t/${encodeURIComponent(tenantId)}/benchmarking/batches/${encodeURIComponent(batchId)}/ingest`,
     {
       method: 'POST',
       token,
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
-      body: file,
+      body: formData,
     },
   );
 }

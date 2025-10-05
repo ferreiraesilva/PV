@@ -40,9 +40,9 @@
               "path": [
                 "v1",
                 "health"
-              ]
-            }
-          },
+            ]
+          }
+        },
           "response": []
         }
       ]
@@ -226,7 +226,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"principal\": 100000,\n  \"discount_rate\": 0.08,\n  \"installments\": [\n    {\n      \"period\": 1,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 2,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 3,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 4,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 5,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 6,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 7,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 8,\n      \"amount\": 12000\n    },\n    {\n      \"period\": 9,\n      \"amount\": 12000\n    }\n  ]\n}",
+              "raw": "{\n  \"plans\": [\n    {\n      \"key\": \"plan-1\",\n      \"label\": \"Exemplo com Reajuste INCC + 1%\",\n      \"principal\": 360000,\n      \"discount_rate\": 0.01,\n      \"adjustment\": {\n        \"base_date\": \"2024-01-01\",\n        \"index\": \"INCC\",\n        \"periodicity\": \"monthly\",\n        \"addon_rate\": 0.01\n      },\n      \"installments\": [\n        {\n          \"due_date\": \"2024-02-15\",\n          \"amount\": 10000\n        },\n        {\n          \"due_date\": \"2024-03-15\",\n          \"amount\": 10000\n        },\n        {\n          \"due_date\": \"2024-04-15\",\n          \"amount\": 10000\n        }\n      ]\n    },\n    {\n      \"key\": \"plan-2\",\n      \"label\": \"Exemplo sem Reajuste\",\n      \"principal\": 50000,\n      \"discount_rate\": 0.015,\n      \"installments\": [\n        {\n          \"due_date\": \"2024-02-20\",\n          \"amount\": 25000\n        },\n        {\n          \"due_date\": \"2024-03-20\",\n          \"amount\": 25000\n        }\n      ]\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -234,7 +234,7 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/simulations",
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/simulations/batches",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -242,7 +242,8 @@
                 "v1",
                 "t",
                 "{{tenantId}}",
-                "simulations"
+                "simulations",
+                "batches"
               ]
             }
           },
@@ -265,7 +266,7 @@
       },
       "item": [
         {
-          "name": "Evaluate Snapshot",
+          "name": "Create Valuation",
           "request": {
             "method": "POST",
             "header": [
@@ -288,7 +289,7 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/valuations/snapshots/{{snapshotId}}/results",
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/valuations",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -296,10 +297,7 @@
                 "v1",
                 "t",
                 "{{tenantId}}",
-                "valuations",
-                "snapshots",
-                "{{snapshotId}}",
-                "results"
+                "valuations"
               ]
             }
           },
@@ -327,25 +325,22 @@
             "method": "POST",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/octet-stream"
-              },
-              {
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "metric_code,segment_bucket,region_bucket,value\nturnover,SME,Southeast,100000\nturnover,Enterprise,South,250000\n",
-              "options": {
-                "raw": {
-                  "language": "text"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/your/dataset.csv"
                 }
-              }
+              ]
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/benchmarking/batches/{{batchId}}/ingest?filename={{benchmarkFilename}}",
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/benchmarking/batches/{{batchId}}/ingest",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -357,12 +352,6 @@
                 "batches",
                 "{{batchId}}",
                 "ingest"
-              ],
-              "query": [
-                {
-                  "key": "filename",
-                  "value": "{{benchmarkFilename}}"
-                }
               ]
             }
           },
@@ -391,6 +380,233 @@
                 "batches",
                 "{{batchId}}",
                 "aggregations"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Financial Indexes",
+      "description": "Cadastro e consulta de valores para índices financeiros customizados por tenant.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create or Update Index Values",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"values\": [\n    {\n      \"reference_date\": \"2024-01-01\",\n      \"value\": 1.005\n    },\n    {\n      \"reference_date\": \"2024-02-01\",\n      \"value\": 1.0045\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/indexes/INCC-CUSTOM/values",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "indexes",
+                "INCC-CUSTOM",
+                "values"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Index Values",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/indexes/INCC-CUSTOM/values",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "indexes",
+                "INCC-CUSTOM",
+                "values"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+    {
+      "name": "Administration",
+      "description": "Endpoints para administração de tenants, planos e usuários. Requer privilégios de superadmin.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Commercial Plan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Plano Básico\",\n  \"description\": \"Acesso essencial às funcionalidades.\",\n  \"maxUsers\": 10,\n  \"billingCycleMonths\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "plans"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Tenants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/tenants?include_inactive=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "tenants"
+              ],
+              "query": [
+                {
+                  "key": "include_inactive",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Tenant",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Novo Cliente\",\n  \"slug\": \"novo-cliente\",\n  \"planId\": \"{{planId}}\",\n  \"companies\": [\n    {\n      \"legalName\": \"Novo Cliente LTDA\",\n      \"taxId\": \"00111222000133\",\n      \"billingEmail\": \"financeiro@novocliente.com\",\n      \"addressLine1\": \"Av. Principal, 1\",\n      \"city\": \"Rio de Janeiro\",\n      \"state\": \"RJ\",\n      \"zipCode\": \"20000-000\",\n      \"country\": \"BR\"\n    }\n  ],\n  \"administrators\": [\n    {\n      \"email\": \"admin@novocliente.com\",\n      \"password\": \"SenhaForte123!\",\n      \"fullName\": \"Admin do Cliente\",\n      \"roles\": [\"tenant_admin\"]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/tenants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "tenants"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Tenant Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Tenant User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"analista@novocliente.com\",\n    \"password\": \"SenhaForte123!\",\n    \"fullName\": \"Analista Financeiro\",\n    \"roles\": [\"user\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/t/{{tenantId}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "t",
+                "{{tenantId}}",
+                "admin",
+                "users"
               ]
             }
           },

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, status, UploadFile
 
 from app.api.deps import CurrentUser, require_roles
 from app.api.schemas.benchmarking import BenchmarkAggregationsResponse, BenchmarkIngestResponse
@@ -71,20 +71,19 @@ async def ingest_benchmark_dataset(
     tenant_id: str,
     batch_id: str,
     request: Request,
-    dataset: bytes = Body(..., media_type="application/octet-stream"),
-    filename: str = Query("dataset.csv", min_length=3, max_length=255),
+    file: UploadFile = File(...),
     current_user: CurrentUser = Depends(require_roles("user", "superuser")),
     db=Depends(get_db),  # noqa: ARG001 - future persistence
 ) -> BenchmarkIngestResponse:
     tenant_uuid = _parse_uuid(tenant_id, field_name="tenant_id")
     batch_uuid = _parse_uuid(batch_id, field_name="batch_id")
-
+    content = await file.read()
     try:
         result = service.ingest_dataset(
             tenant_uuid,
             batch_uuid,
-            filename=filename,
-            content=dataset,
+            filename=file.filename or "dataset.bin",
+            content=content,
         )
     except (ValueError, OSError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

@@ -20,13 +20,18 @@ O SAFV é um sistema SaaS multi-tenant desenvolvido para automatizar e otimizar 
 - Simulação de Planos de Pagamento  
 - Valoração de Carteira de Recebíveis  
 - Benchmarking de Mercado  
-- IA Preditiva e Recomendações
+- IA Preditiva e Recomendações  
+- **Reajuste automático de parcelas com base em índices financeiros (IGPM, IPCA, INCC ou combinações como INCC + 1%)**  
+- **Cálculo do Valor Presente (PV) considerando o valor corrigido das parcelas antes do desconto financeiro**  
+- **Configuração de regra de reajuste por parcela (override): cada parcela pode ter índice/acréscimo/periodicidade próprios ou ser fixa (sem correção).**
 
 ## 5. Critérios de Sucesso
 - Precisão nos cálculos financeiros (PV, PMR, PMV)  
 - Redução do tempo de análise manual  
 - Adoção crescente entre os segmentos-alvo  
-- Geração de insights úteis e acionáveis
+- Geração de insights úteis e acionáveis  
+- **Correção exata de parcelas conforme regras por contrato e por parcela**
 
 ## 6. Escopo
-O produto será oferecido como SaaS hospedado em nuvem, com interface web responsiva, APIs REST e arquitetura multi-tenant segura. Integrações com ERPs e CRMs ocorrerão via API ou importação de planilhas.
+O produto será oferecido como SaaS hospedado em nuvem, com interface web responsiva, APIs REST e arquitetura multi-tenant segura. Integrações com ERPs e CRMs ocorrerão via API ou importação de planilhas.  
+O sistema aplicará automaticamente os reajustes configurados antes de calcular o valor presente, permitindo **regras de reajuste por contrato e por parcela** (parcelas fixas ou indexadas, com overrides).

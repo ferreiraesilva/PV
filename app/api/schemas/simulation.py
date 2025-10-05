@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+﻿﻿from __future__ import annotations
 
 from datetime import date
 from typing import List, Literal, Optional
@@ -8,8 +8,17 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class InstallmentInput(BaseModel):
-    period: int = Field(..., ge=1)
+    due_date: date = Field(..., alias="dueDate")
     amount: float = Field(..., gt=0)
+
+
+class AdjustmentPayload(BaseModel):
+    base_date: date = Field(..., alias="baseDate")
+    index: str = Field(..., min_length=1)
+    periodicity: Literal["monthly", "anniversary"]
+    addon_rate: float = Field(..., ge=0, alias="addonRate")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class SimulationInput(BaseModel):
@@ -24,6 +33,7 @@ class SimulationPlanPayload(BaseModel):
     product_code: Optional[str] = Field(None, min_length=1, max_length=128, alias="productCode")
     principal: float = Field(..., gt=0)
     discount_rate: float = Field(..., ge=0)
+    adjustment: Optional[AdjustmentPayload] = None
     installments: List[InstallmentInput]
 
     model_config = ConfigDict(populate_by_name=True)
@@ -57,6 +67,7 @@ class SimulationBatchRequest(BaseModel):
 
 class SimulationResult(BaseModel):
     present_value: float
+    present_value_adjusted: Optional[float] = None
     future_value: float
     payment: float
     average_installment: float
