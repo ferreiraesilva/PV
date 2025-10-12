@@ -18,6 +18,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             request_uuid = uuid.uuid4()
         request.state.request_id = str(request_uuid)
 
-        with logger.contextualize(request_id=str(request_uuid), path=request.url.path, method=request.method):
+        with logger.contextualize(
+            request_id=str(request_uuid), path=request.url.path, method=request.method
+        ):
             response = await call_next(request)
         return response

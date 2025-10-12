@@ -58,6 +58,8 @@ class RefreshTokenRepository:
         (
             self.session.query(RefreshToken)
             .filter(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
-            .update({"revoked_at": datetime.now(timezone.utc)}, synchronize_session=False)
+            .update(
+                {"revoked_at": datetime.now(timezone.utc)}, synchronize_session=False
+            )
         )
         self.session.commit()

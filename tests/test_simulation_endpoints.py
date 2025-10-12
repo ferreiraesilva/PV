@@ -8,7 +8,9 @@ from app.api.routes import simulations as simulations_routes
 from tests.conftest import TENANT_ID
 
 
-def test_simulation_endpoint_returns_metrics(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_simulation_endpoint_returns_metrics(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     payload = {
         "principal": 10000,
         "discount_rate": 0.12,
@@ -58,13 +60,17 @@ def test_simulation_endpoint_uses_standard_plan_when_product_code_matches(
                 return [template]
             return []
 
-        def list_by_product_codes(self, tenant_id, product_codes, *, only_active: bool = True):
+        def list_by_product_codes(
+            self, tenant_id, product_codes, *, only_active: bool = True
+        ):
             lowered = {code.lower() for code in product_codes}
             if "plano-vip" in lowered:
                 return [template]
             return []
 
-    monkeypatch.setattr(simulations_routes, "PaymentPlanTemplateRepository", StubRepository)
+    monkeypatch.setattr(
+        simulations_routes, "PaymentPlanTemplateRepository", StubRepository
+    )
 
     payload = {
         "plans": [
@@ -92,12 +98,16 @@ def test_simulation_endpoint_uses_standard_plan_when_product_code_matches(
     assert len(body["outcomes"]) == 2
     sources = {item["source"] for item in body["outcomes"]}
     assert sources == {"input", "template"}
-    template_outcome = next(item for item in body["outcomes"] if item["source"] == "template")
+    template_outcome = next(
+        item for item in body["outcomes"] if item["source"] == "template"
+    )
     assert template_outcome["product_code"] == "plano-vip"
     assert template_outcome["plan"]["principal"] == 5000
 
 
-def test_valuation_endpoint_returns_scenarios(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_valuation_endpoint_returns_scenarios(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     payload = {
         "cashflows": [
             {
@@ -114,8 +124,18 @@ def test_valuation_endpoint_returns_scenarios(client: TestClient, auth_headers: 
             },
         ],
         "scenarios": [
-            {"code": "base", "discount_rate": 0.1, "default_multiplier": 1.0, "cancellation_multiplier": 1.0},
-            {"code": "stress", "discount_rate": 0.12, "default_multiplier": 1.2, "cancellation_multiplier": 1.1},
+            {
+                "code": "base",
+                "discount_rate": 0.1,
+                "default_multiplier": 1.0,
+                "cancellation_multiplier": 1.0,
+            },
+            {
+                "code": "stress",
+                "discount_rate": 0.12,
+                "default_multiplier": 1.2,
+                "cancellation_multiplier": 1.1,
+            },
         ],
     }
     response = client.post(

@@ -1,4 +1,5 @@
 """Initial safv schema"""
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -18,29 +19,66 @@ def upgrade() -> None:
 
     op.create_table(
         "tenants",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("slug", sa.String(length=255), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.UniqueConstraint("slug", name="uq_tenants_slug"),
     )
 
     op.create_table(
         "users",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("email", sa.String(length=320), nullable=False),
         sa.Column("hashed_password", sa.String(length=255), nullable=False),
         sa.Column("full_name", sa.String(length=255), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("is_superuser", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column(
+            "is_superuser", sa.Boolean(), nullable=False, server_default=sa.false()
+        ),
         sa.Column("last_login_at", sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column("locale", sa.String(length=16), nullable=True, server_default=sa.text("'en-US'")),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "locale",
+            sa.String(length=16),
+            nullable=True,
+            server_default=sa.text("'en-US'"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.UniqueConstraint("tenant_id", "email", name="uq_users_tenant_email"),
     )
@@ -49,22 +87,44 @@ def upgrade() -> None:
 
     op.create_table(
         "roles",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("is_default", sa.Boolean(), nullable=False, server_default=sa.false()),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "is_default", sa.Boolean(), nullable=False, server_default=sa.false()
+        ),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.UniqueConstraint("tenant_id", "name", name="uq_roles_tenant_name"),
     )
 
     op.create_table(
         "permissions",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("code", sa.String(length=150), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.UniqueConstraint("code", name="uq_permissions_code"),
     )
 
@@ -72,8 +132,15 @@ def upgrade() -> None:
         "role_permissions",
         sa.Column("role_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("permission_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.ForeignKeyConstraint(["permission_id"], ["permissions.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["permission_id"], ["permissions.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("role_id", "permission_id", name="pk_role_permissions"),
     )
@@ -82,7 +149,12 @@ def upgrade() -> None:
         "user_roles",
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("role_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("assigned_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "assigned_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("user_id", "role_id", name="pk_user_roles"),
@@ -90,10 +162,20 @@ def upgrade() -> None:
 
     op.create_table(
         "refresh_tokens",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("token_hash", sa.String(length=255), nullable=False),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.Column("expires_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("revoked_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("user_agent", sa.Text(), nullable=True),
@@ -106,17 +188,34 @@ def upgrade() -> None:
 
     op.create_table(
         "financial_indices",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("code", sa.String(length=64), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("source", sa.String(length=255), nullable=True),
         sa.Column("unit", sa.String(length=32), nullable=True),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="SET NULL"),
-        sa.UniqueConstraint("tenant_id", "code", name="uq_financial_indices_tenant_code"),
+        sa.UniqueConstraint(
+            "tenant_id", "code", name="uq_financial_indices_tenant_code"
+        ),
     )
     op.create_index(
         "uq_financial_indices_code_global",
@@ -128,58 +227,129 @@ def upgrade() -> None:
 
     op.create_table(
         "financial_index_values",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("financial_index_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("reference_date", sa.Date(), nullable=False),
         sa.Column("value", sa.Numeric(14, 6), nullable=False),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.ForeignKeyConstraint(["financial_index_id"], ["financial_indices.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("financial_index_id", "reference_date", name="uq_financial_index_values_unique"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["financial_index_id"], ["financial_indices.id"], ondelete="CASCADE"
+        ),
+        sa.UniqueConstraint(
+            "financial_index_id",
+            "reference_date",
+            name="uq_financial_index_values_unique",
+        ),
     )
-    op.create_index("ix_financial_index_values_date", "financial_index_values", ["reference_date"])
+    op.create_index(
+        "ix_financial_index_values_date", "financial_index_values", ["reference_date"]
+    )
 
     op.create_table(
         "simulation_requests",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("base_amount", sa.Numeric(18, 2), nullable=False),
-        sa.Column("currency", sa.String(length=3), nullable=False, server_default=sa.text("'BRL'")),
+        sa.Column(
+            "currency",
+            sa.String(length=3),
+            nullable=False,
+            server_default=sa.text("'BRL'"),
+        ),
         sa.Column("valuation_date", sa.Date(), nullable=False),
-        sa.Column("status", sa.String(length=32), nullable=False, server_default=sa.text("'draft'")),
+        sa.Column(
+            "status",
+            sa.String(length=32),
+            nullable=False,
+            server_default=sa.text("'draft'"),
+        ),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.CheckConstraint("status IN ('draft','processing','completed','failed')", name="ck_simulation_requests_status"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.CheckConstraint(
+            "status IN ('draft','processing','completed','failed')",
+            name="ck_simulation_requests_status",
+        ),
         sa.ForeignKeyConstraint(["created_by"], ["users.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
     )
-    op.create_index("ix_simulation_requests_tenant_id", "simulation_requests", ["tenant_id"])
+    op.create_index(
+        "ix_simulation_requests_tenant_id", "simulation_requests", ["tenant_id"]
+    )
     op.create_index("ix_simulation_requests_status", "simulation_requests", ["status"])
 
     op.create_table(
         "simulation_plans",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("simulation_request_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column(
+            "simulation_request_id", postgresql.UUID(as_uuid=True), nullable=False
+        ),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("discount_rate", sa.Numeric(8, 4), nullable=False),
         sa.Column("rate_type", sa.String(length=50), nullable=False),
         sa.Column("indexation_formula", sa.Text(), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.ForeignKeyConstraint(["simulation_request_id"], ["simulation_requests.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["simulation_request_id"], ["simulation_requests.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("simulation_request_id", "name", name="uq_simulation_plans_request_name"),
+        sa.UniqueConstraint(
+            "simulation_request_id", "name", name="uq_simulation_plans_request_name"
+        ),
     )
-    op.create_index("ix_simulation_plans_request_id", "simulation_plans", ["simulation_request_id"])
+    op.create_index(
+        "ix_simulation_plans_request_id", "simulation_plans", ["simulation_request_id"]
+    )
 
     op.create_table(
         "simulation_plan_installments",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("simulation_plan_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("sequence", sa.SmallInteger(), nullable=False),
@@ -187,20 +357,44 @@ def upgrade() -> None:
         sa.Column("principal_amount", sa.Numeric(18, 2), nullable=False),
         sa.Column("interest_rate", sa.Numeric(8, 4), nullable=True),
         sa.Column("financial_index_id", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("is_adjustable", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column(
+            "is_adjustable", sa.Boolean(), nullable=False, server_default=sa.false()
+        ),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.ForeignKeyConstraint(["financial_index_id"], ["financial_indices.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["simulation_plan_id"], ["simulation_plans.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["financial_index_id"], ["financial_indices.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["simulation_plan_id"], ["simulation_plans.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("simulation_plan_id", "sequence", name="uq_plan_installments_sequence"),
+        sa.UniqueConstraint(
+            "simulation_plan_id", "sequence", name="uq_plan_installments_sequence"
+        ),
     )
-    op.create_index("ix_plan_installments_plan_id", "simulation_plan_installments", ["simulation_plan_id"])
-    op.create_index("ix_plan_installments_due_date", "simulation_plan_installments", ["due_date"])
+    op.create_index(
+        "ix_plan_installments_plan_id",
+        "simulation_plan_installments",
+        ["simulation_plan_id"],
+    )
+    op.create_index(
+        "ix_plan_installments_due_date", "simulation_plan_installments", ["due_date"]
+    )
 
     op.create_table(
         "simulation_results",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("simulation_plan_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("present_value", sa.Numeric(18, 2), nullable=False),
@@ -208,34 +402,71 @@ def upgrade() -> None:
         sa.Column("mean_term_months", sa.Numeric(10, 2), nullable=True),
         sa.Column("future_value", sa.Numeric(18, 2), nullable=True),
         sa.Column("summary", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.ForeignKeyConstraint(["simulation_plan_id"], ["simulation_plans.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["simulation_plan_id"], ["simulation_plans.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.UniqueConstraint("simulation_plan_id", name="uq_simulation_results_plan"),
     )
 
     op.create_table(
         "portfolio_snapshots",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("valuation_date", sa.Date(), nullable=False),
         sa.Column("discount_rate", sa.Numeric(8, 4), nullable=False),
-        sa.Column("status", sa.String(length=32), nullable=False, server_default=sa.text("'draft'")),
+        sa.Column(
+            "status",
+            sa.String(length=32),
+            nullable=False,
+            server_default=sa.text("'draft'"),
+        ),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.CheckConstraint("status IN ('draft','processing','completed','failed')", name="ck_portfolio_snapshots_status"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.CheckConstraint(
+            "status IN ('draft','processing','completed','failed')",
+            name="ck_portfolio_snapshots_status",
+        ),
         sa.ForeignKeyConstraint(["created_by"], ["users.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
     )
-    op.create_index("ix_portfolio_snapshots_tenant_id", "portfolio_snapshots", ["tenant_id"])
+    op.create_index(
+        "ix_portfolio_snapshots_tenant_id", "portfolio_snapshots", ["tenant_id"]
+    )
 
     op.create_table(
         "portfolio_contracts",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("snapshot_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("external_id", sa.String(length=128), nullable=True),
@@ -245,18 +476,40 @@ def upgrade() -> None:
         sa.Column("probability_default", sa.Numeric(5, 4), nullable=True),
         sa.Column("probability_cancellation", sa.Numeric(5, 4), nullable=True),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.CheckConstraint("probability_default IS NULL OR (probability_default >= 0 AND probability_default <= 1)", name="ck_contracts_default"),
-        sa.CheckConstraint("probability_cancellation IS NULL OR (probability_cancellation >= 0 AND probability_cancellation <= 1)", name="ck_contracts_cancellation"),
-        sa.ForeignKeyConstraint(["snapshot_id"], ["portfolio_snapshots.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.CheckConstraint(
+            "probability_default IS NULL OR (probability_default >= 0 AND probability_default <= 1)",
+            name="ck_contracts_default",
+        ),
+        sa.CheckConstraint(
+            "probability_cancellation IS NULL OR (probability_cancellation >= 0 AND probability_cancellation <= 1)",
+            name="ck_contracts_cancellation",
+        ),
+        sa.ForeignKeyConstraint(
+            ["snapshot_id"], ["portfolio_snapshots.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
     )
-    op.create_index("ix_portfolio_contracts_snapshot_id", "portfolio_contracts", ["snapshot_id"])
-    op.create_index("ix_portfolio_contracts_customer_code", "portfolio_contracts", ["customer_code"])
+    op.create_index(
+        "ix_portfolio_contracts_snapshot_id", "portfolio_contracts", ["snapshot_id"]
+    )
+    op.create_index(
+        "ix_portfolio_contracts_customer_code", "portfolio_contracts", ["customer_code"]
+    )
 
     op.create_table(
         "portfolio_cashflows",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("contract_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("due_date", sa.Date(), nullable=False),
@@ -264,20 +517,49 @@ def upgrade() -> None:
         sa.Column("expected_payment_date", sa.Date(), nullable=True),
         sa.Column("paid_amount", sa.Numeric(18, 2), nullable=True),
         sa.Column("paid_date", sa.Date(), nullable=True),
-        sa.Column("status", sa.String(length=32), nullable=False, server_default=sa.text("'scheduled'")),
+        sa.Column(
+            "status",
+            sa.String(length=32),
+            nullable=False,
+            server_default=sa.text("'scheduled'"),
+        ),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.CheckConstraint("status IN ('scheduled','paid','overdue','cancelled')", name="ck_portfolio_cashflows_status"),
-        sa.ForeignKeyConstraint(["contract_id"], ["portfolio_contracts.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.CheckConstraint(
+            "status IN ('scheduled','paid','overdue','cancelled')",
+            name="ck_portfolio_cashflows_status",
+        ),
+        sa.ForeignKeyConstraint(
+            ["contract_id"], ["portfolio_contracts.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("contract_id", "due_date", "amount_due", name="uq_cashflows_contract_due_amount"),
+        sa.UniqueConstraint(
+            "contract_id",
+            "due_date",
+            "amount_due",
+            name="uq_cashflows_contract_due_amount",
+        ),
     )
-    op.create_index("ix_portfolio_cashflows_contract_id", "portfolio_cashflows", ["contract_id"])
-    op.create_index("ix_portfolio_cashflows_due_date", "portfolio_cashflows", ["due_date"])
+    op.create_index(
+        "ix_portfolio_cashflows_contract_id", "portfolio_cashflows", ["contract_id"]
+    )
+    op.create_index(
+        "ix_portfolio_cashflows_due_date", "portfolio_cashflows", ["due_date"]
+    )
 
     op.create_table(
         "portfolio_results",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("snapshot_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("gross_present_value", sa.Numeric(18, 2), nullable=False),
@@ -286,71 +568,161 @@ def upgrade() -> None:
         sa.Column("pricing_value", sa.Numeric(18, 2), nullable=True),
         sa.Column("scenario", sa.String(length=32), nullable=False),
         sa.Column("metrics", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.ForeignKeyConstraint(["snapshot_id"], ["portfolio_snapshots.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["snapshot_id"], ["portfolio_snapshots.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("snapshot_id", "scenario", name="uq_portfolio_results_scenario"),
+        sa.UniqueConstraint(
+            "snapshot_id", "scenario", name="uq_portfolio_results_scenario"
+        ),
     )
 
     op.create_table(
         "benchmark_batches",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("reference_month", sa.Date(), nullable=False),
-        sa.Column("status", sa.String(length=32), nullable=False, server_default=sa.text("'draft'")),
+        sa.Column(
+            "status",
+            sa.String(length=32),
+            nullable=False,
+            server_default=sa.text("'draft'"),
+        ),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.CheckConstraint("status IN ('draft','processing','completed','failed')", name="ck_benchmark_batches_status"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.CheckConstraint(
+            "status IN ('draft','processing','completed','failed')",
+            name="ck_benchmark_batches_status",
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("tenant_id", "reference_month", name="uq_benchmark_batches_reference"),
+        sa.UniqueConstraint(
+            "tenant_id", "reference_month", name="uq_benchmark_batches_reference"
+        ),
     )
 
     op.create_table(
         "benchmark_metrics",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("benchmark_batch_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("metric_code", sa.String(length=100), nullable=False),
         sa.Column("segment", sa.String(length=128), nullable=True),
         sa.Column("region", sa.String(length=128), nullable=True),
         sa.Column("value_numeric", sa.Numeric(18, 4), nullable=True),
         sa.Column("value_json", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.ForeignKeyConstraint(["benchmark_batch_id"], ["benchmark_batches.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["benchmark_batch_id"], ["benchmark_batches.id"], ondelete="CASCADE"
+        ),
     )
-    op.create_index("ix_benchmark_metrics_batch_id", "benchmark_metrics", ["benchmark_batch_id"])
+    op.create_index(
+        "ix_benchmark_metrics_batch_id", "benchmark_metrics", ["benchmark_batch_id"]
+    )
     op.create_index("ix_benchmark_metrics_metric", "benchmark_metrics", ["metric_code"])
 
     op.create_table(
         "recommendation_runs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("snapshot_id", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("simulation_request_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column(
+            "simulation_request_id", postgresql.UUID(as_uuid=True), nullable=True
+        ),
         sa.Column("run_type", sa.String(length=50), nullable=False),
-        sa.Column("status", sa.String(length=32), nullable=False, server_default=sa.text("'draft'")),
+        sa.Column(
+            "status",
+            sa.String(length=32),
+            nullable=False,
+            server_default=sa.text("'draft'"),
+        ),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("payload", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.Column("completed_at", sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.CheckConstraint("status IN ('draft','processing','completed','failed')", name="ck_recommendation_runs_status"),
-        sa.ForeignKeyConstraint(["simulation_request_id"], ["simulation_requests.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["snapshot_id"], ["portfolio_snapshots.id"], ondelete="SET NULL"),
+        sa.CheckConstraint(
+            "status IN ('draft','processing','completed','failed')",
+            name="ck_recommendation_runs_status",
+        ),
+        sa.ForeignKeyConstraint(
+            ["simulation_request_id"], ["simulation_requests.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["snapshot_id"], ["portfolio_snapshots.id"], ondelete="SET NULL"
+        ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
     )
 
     op.create_table(
         "recommendation_items",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
-        sa.Column("recommendation_run_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
+        sa.Column(
+            "recommendation_run_id", postgresql.UUID(as_uuid=True), nullable=False
+        ),
         sa.Column("title", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("priority", sa.String(length=32), nullable=True),
-        sa.Column("action_json", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.CheckConstraint("priority IS NULL OR priority IN ('low','medium','high','critical')", name="ck_recommendation_items_priority"),
-        sa.ForeignKeyConstraint(["recommendation_run_id"], ["recommendation_runs.id"], ondelete="CASCADE"),
+        sa.Column(
+            "action_json", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+        ),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.CheckConstraint(
+            "priority IS NULL OR priority IN ('low','medium','high','critical')",
+            name="ck_recommendation_items_priority",
+        ),
+        sa.ForeignKeyConstraint(
+            ["recommendation_run_id"], ["recommendation_runs.id"], ondelete="CASCADE"
+        ),
     )
-    op.create_index("ix_recommendation_items_run_id", "recommendation_items", ["recommendation_run_id"])
+    op.create_index(
+        "ix_recommendation_items_run_id",
+        "recommendation_items",
+        ["recommendation_run_id"],
+    )
 
     op.execute(
         """
@@ -376,7 +748,9 @@ def upgrade() -> None:
         ) PARTITION BY RANGE (occurred_at);
         """
     )
-    op.execute("CREATE TABLE IF NOT EXISTS audit_logs_default PARTITION OF audit_logs DEFAULT;")
+    op.execute(
+        "CREATE TABLE IF NOT EXISTS audit_logs_default PARTITION OF audit_logs DEFAULT;"
+    )
     op.create_index("ix_audit_logs_tenant_id", "audit_logs", ["tenant_id"])
     op.create_index("ix_audit_logs_request_id", "audit_logs", ["request_id"])
     op.create_index("ix_audit_logs_occurred_at", "audit_logs", ["occurred_at"])
@@ -473,11 +847,17 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute("DELETE FROM user_roles WHERE user_id = '44444444-4444-4444-4444-444444444444' AND role_id = '22222222-2222-2222-2222-222222222222';")
+    op.execute(
+        "DELETE FROM user_roles WHERE user_id = '44444444-4444-4444-4444-444444444444' AND role_id = '22222222-2222-2222-2222-222222222222';"
+    )
     op.execute("DELETE FROM users WHERE id = '44444444-4444-4444-4444-444444444444';")
-    op.execute("DELETE FROM role_permissions WHERE role_id = '22222222-2222-2222-2222-222222222222';")
+    op.execute(
+        "DELETE FROM role_permissions WHERE role_id = '22222222-2222-2222-2222-222222222222';"
+    )
     op.execute("DELETE FROM roles WHERE id = '22222222-2222-2222-2222-222222222222';")
-    op.execute("DELETE FROM permissions WHERE code IN ('manage_users','view_audit_logs','manage_financial_models');")
+    op.execute(
+        "DELETE FROM permissions WHERE code IN ('manage_users','view_audit_logs','manage_financial_models');"
+    )
     op.execute("DELETE FROM tenants WHERE id = '11111111-1111-1111-1111-111111111111';")
 
     op.drop_index("ix_audit_logs_occurred_at", table_name="audit_logs")
@@ -497,17 +877,27 @@ def downgrade() -> None:
 
     op.drop_table("portfolio_results")
     op.drop_index("ix_portfolio_cashflows_due_date", table_name="portfolio_cashflows")
-    op.drop_index("ix_portfolio_cashflows_contract_id", table_name="portfolio_cashflows")
+    op.drop_index(
+        "ix_portfolio_cashflows_contract_id", table_name="portfolio_cashflows"
+    )
     op.drop_table("portfolio_cashflows")
-    op.drop_index("ix_portfolio_contracts_customer_code", table_name="portfolio_contracts")
-    op.drop_index("ix_portfolio_contracts_snapshot_id", table_name="portfolio_contracts")
+    op.drop_index(
+        "ix_portfolio_contracts_customer_code", table_name="portfolio_contracts"
+    )
+    op.drop_index(
+        "ix_portfolio_contracts_snapshot_id", table_name="portfolio_contracts"
+    )
     op.drop_table("portfolio_contracts")
     op.drop_index("ix_portfolio_snapshots_tenant_id", table_name="portfolio_snapshots")
     op.drop_table("portfolio_snapshots")
 
     op.drop_table("simulation_results")
-    op.drop_index("ix_plan_installments_due_date", table_name="simulation_plan_installments")
-    op.drop_index("ix_plan_installments_plan_id", table_name="simulation_plan_installments")
+    op.drop_index(
+        "ix_plan_installments_due_date", table_name="simulation_plan_installments"
+    )
+    op.drop_index(
+        "ix_plan_installments_plan_id", table_name="simulation_plan_installments"
+    )
     op.drop_table("simulation_plan_installments")
     op.drop_index("ix_simulation_plans_request_id", table_name="simulation_plans")
     op.drop_table("simulation_plans")

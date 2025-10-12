@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
-from typing import List, Optional
+from datetime import date, timedelta
+from typing import Dict, List, Optional
+
+from app.db.repositories.financial_index import FinancialIndexRepository
+from app.services.financial import (
+    Cashflow,
+    calculate_portfolio_value,
+    calculate_simulation_metrics,
+)
 
 
 def _calculate_months_between(start_date: date, end_date: date) -> int:
@@ -37,7 +44,10 @@ class AdjustmentLogic:
         """Applies the adjustment to a list of installments."""
         if not self._index_values:
             # If no custom index values, fall back to a simple addon_rate adjustment
-            return [(period, amount * ((1 + self.addon_rate) ** (period / 12))) for period, amount in periods]
+            return [
+                (period, amount * ((1 + self.addon_rate) ** (period / 12)))
+                for period, amount in periods
+            ]
 
         if self.periodicity == "monthly":
             return self._apply_monthly(periods)
@@ -45,22 +55,32 @@ class AdjustmentLogic:
         if self.periodicity == "anniversary":
             return self._apply_anniversary(periods)
 
-    def _apply_monthly(self, periods: list[tuple[int, float]]) -> list[tuple[int, float]]:
+        raise ValueError(f"Unsupported adjustment periodicity: {self.periodicity}")
+
+    def _apply_monthly(
+        self, periods: list[tuple[int, float]]
+    ) -> list[tuple[int, float]]:
         adjusted_periods = []
         for period, amount in periods:
             correction_factor = 1.0
             # Iterate from the month after base_date up to the installment's month
             for m in range(1, period + 1):
                 current_month_date = self.base_date + timedelta(days=31 * m)
-                reference_date = date(current_month_date.year, current_month_date.month, 1)
+                reference_date = date(
+                    current_month_date.year, current_month_date.month, 1
+                )
                 # Get index for the reference month, or default to 1.0 (no change)
                 monthly_index = self._index_values.get(reference_date, 1.0)
                 correction_factor *= monthly_index
-            adjusted_amount = amount * correction_factor * ((1 + self.addon_rate) ** (period / 12))
+            adjusted_amount = (
+                amount * correction_factor * ((1 + self.addon_rate) ** (period / 12))
+            )
             adjusted_periods.append((period, adjusted_amount))
         return adjusted_periods
 
-    def _apply_anniversary(self, periods: list[tuple[int, float]]) -> list[tuple[int, float]]:
+    def _apply_anniversary(
+        self, periods: list[tuple[int, float]]
+    ) -> list[tuple[int, float]]:
         adjusted_periods = []
         for period, amount in periods:
             num_years_passed = period // 12
@@ -73,11 +93,17 @@ class AdjustmentLogic:
                 year_start_month_offset = year * 12
                 # Calculate the accumulated index for the 12 months of the current contract year
                 for m in range(1, 13):
-                    current_month_date = self.base_date + timedelta(days=31 * (year_start_month_offset + m))
-                    reference_date = date(current_month_date.year, current_month_date.month, 1)
+                    current_month_date = self.base_date + timedelta(
+                        days=31 * (year_start_month_offset + m)
+                    )
+                    reference_date = date(
+                        current_month_date.year, current_month_date.month, 1
+                    )
                     correction_factor *= self._index_values.get(reference_date, 1.0)
 
-            adjusted_amount = amount * correction_factor * ((1 + self.addon_rate) ** num_years_passed)
+            adjusted_amount = (
+                amount * correction_factor * ((1 + self.addon_rate) ** num_years_passed)
+            )
             adjusted_periods.append((period, adjusted_amount))
         return adjusted_periods
 
@@ -90,11 +116,15 @@ class SimulationPlan:
     adjustment_logic: Optional[AdjustmentLogic] = None
 
     def metrics(self) -> dict[str, float]:
-        metrics = calculate_simulation_metrics(self.principal, self.discount_rate, self.periods)
+        metrics = calculate_simulation_metrics(
+            self.principal, self.discount_rate, self.periods
+        )
 
         if self.adjustment_logic:
             adjusted_periods = self.adjustment_logic.apply(self.periods)
-            adjusted_metrics = calculate_simulation_metrics(self.principal, self.discount_rate, adjusted_periods)
+            adjusted_metrics = calculate_simulation_metrics(
+                self.principal, self.discount_rate, adjusted_periods
+            )
             metrics["present_value_adjusted"] = adjusted_metrics["present_value"]
 
         return metrics
@@ -107,7 +137,9 @@ class PortfolioScenario:
     cancellation_multiplier: float
 
 
-def evaluate_portfolio(cashflows: List[Cashflow], scenario: PortfolioScenario) -> dict[str, float]:
+def evaluate_portfolio(
+    cashflows: List[Cashflow], scenario: PortfolioScenario
+) -> dict[str, float]:
     return calculate_portfolio_value(
         cashflows,
         discount_rate=scenario.discount_rate,

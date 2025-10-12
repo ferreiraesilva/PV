@@ -16,7 +16,9 @@ def _simulation_payload() -> dict[str, object]:
     }
 
 
-def test_rate_limit_blocks_excessive_requests(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_rate_limit_blocks_excessive_requests(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     path = f"/v1/t/{TENANT_ID}/simulations"
     for _ in range(settings.rate_limit_requests):
         response = client.post(path, json=_simulation_payload(), headers=auth_headers)
@@ -30,7 +32,9 @@ def test_rate_limit_blocks_excessive_requests(client: TestClient, auth_headers: 
     assert blocked.headers["X-RateLimit-Remaining"] == "0"
 
 
-def test_validation_error_uses_standard_payload(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_validation_error_uses_standard_payload(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     path = f"/v1/t/{TENANT_ID}/valuations/snapshots/snap-1/results"
     response = client.post(path, json={}, headers=auth_headers)
     assert response.status_code == 422

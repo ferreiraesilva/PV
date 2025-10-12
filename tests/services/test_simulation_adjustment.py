@@ -16,7 +16,9 @@ def mock_index_repository() -> Mock:
 
 
 class TestAdjustmentLogic:
-    def test_apply_uses_addon_rate_as_fallback_when_no_index_values(self, mock_index_repository: Mock):
+    def test_apply_uses_addon_rate_as_fallback_when_no_index_values(
+        self, mock_index_repository: Mock
+    ):
         """
         Verifica se, na ausência de valores de índice no banco, a lógica de reajuste
         utiliza a `addon_rate` para calcular a correção.
@@ -41,7 +43,9 @@ class TestAdjustmentLogic:
 
         # Assert
         # Verifica se o repositório foi consultado
-        mock_index_repository.list_by_index_code.assert_called_once_with(tenant_id, "INCC-CUSTOM")
+        mock_index_repository.list_by_index_code.assert_called_once_with(
+            tenant_id, "INCC-CUSTOM"
+        )
 
         # Valida o cálculo para a primeira parcela (1 mês)
         expected_amount_1 = 1000.0 * ((1 + addon_rate) ** (1 / 12))
@@ -62,7 +66,7 @@ class TestAdjustmentLogic:
         index_values = [
             Mock(reference_date=date(2024, 2, 1), value=1.01),  # Fev/24
             Mock(reference_date=date(2024, 3, 1), value=1.02),  # Mar/24
-            Mock(reference_date=date(2024, 4, 1), value=1.005), # Abr/24
+            Mock(reference_date=date(2024, 4, 1), value=1.005),  # Abr/24
         ]
         mock_index_repository.list_by_index_code.return_value = index_values
         base_date = date(2024, 1, 15)
@@ -99,7 +103,8 @@ class TestAdjustmentLogic:
         # Arrange
         # Mock de valores de índice para 12 meses
         index_values = [
-            Mock(reference_date=date(2024, m + 1, 1), value=(1.005 + m * 0.0001)) for m in range(12)
+            Mock(reference_date=date(2024, m + 1, 1), value=(1.005 + m * 0.0001))
+            for m in range(12)
         ]
         mock_index_repository.list_by_index_code.return_value = index_values
         base_date = date(2023, 12, 15)

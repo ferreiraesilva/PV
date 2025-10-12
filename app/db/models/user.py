@@ -1,6 +1,15 @@
 import uuid
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, JSON, String, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    JSON,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
@@ -13,7 +22,9 @@ class User(Base):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
     email = Column(String(320), nullable=False)
     hashed_password = Column(String(255), nullable=False)
     roles = Column(JSON, nullable=False, default=lambda: ["user"])
@@ -27,5 +38,12 @@ class User(Base):
     password_reset_token_expires_at = Column(DateTime(timezone=True), nullable=True)
     password_reset_requested_at = Column(DateTime(timezone=True), nullable=True)
     locale = Column(String(16), nullable=False, default="en-US")
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

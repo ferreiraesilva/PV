@@ -15,10 +15,16 @@ class AuditLog(Base):
     __table_args__ = {"postgresql_partition_by": "RANGE (occurred_at)"}
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    occurred_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    occurred_at = Column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+    tenant_id = Column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
     request_id = Column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     role = Column(String(100), nullable=True)
     ip_address = Column(INET, nullable=True)
     user_agent = Column(Text, nullable=True)

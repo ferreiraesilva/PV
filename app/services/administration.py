@@ -11,7 +11,12 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.roles import ALLOWED_ROLES, SUPERADMIN_ROLE, TENANT_ADMIN_ROLE, TENANT_USER_ROLE
+from app.core.roles import (
+    ALLOWED_ROLES,
+    SUPERADMIN_ROLE,
+    TENANT_ADMIN_ROLE,
+    TENANT_USER_ROLE,
+)
 from app.core.security import get_password_hash, verify_password
 from app.db.models import (
     CommercialPlan,
@@ -47,7 +52,38 @@ class ActingUser:
     roles: frozenset[str]
 
     def has_any_role(self, *roles: str) -> bool:
-        return bool(self.roles.intersection(roles))
+        return bool(
+            self._normalized_roles().intersection(self._normalize_role_set(roles))
+        )
+
+    def is_superuser(self) -> bool:
+        """Return True when the acting user holds the superadmin role."""
+        return self.has_any_role(SUPERADMIN_ROLE, "superuser")
+
+    def is_tenant_admin_for(self, tenant_id: UUID) -> bool:
+        """Return True when the user is tenant admin for the provided tenant."""
+        return (
+            self.has_any_role(TENANT_ADMIN_ROLE, "tenant_admin")
+            and self.tenant_id == tenant_id
+        )
+
+    def _normalized_roles(self) -> set[str]:
+        return {self._normalize_token(role) for role in self.roles}
+
+    @staticmethod
+    def _normalize_role_set(values: Sequence[str]) -> set[str]:
+        return {ActingUser._normalize_token(value) for value in values}
+
+    @staticmethod
+    def _normalize_token(value: str) -> str:
+        token = value.replace("-", "").replace("_", "").strip().lower()
+        if token in {"superuser", "superadministrator", "superadmin"}:
+            return SUPERADMIN_ROLE
+        if token in {"tenantadmin", "tenantadministrator"}:
+            return TENANT_ADMIN_ROLE
+        if token in {"tenantuser", "enduser"}:
+            return TENANT_USER_ROLE
+        return token
 
 
 @dataclass(frozen=True)
@@ -165,11 +201,27 @@ class PasswordResetToken:
 
 
 class AdministrationService:
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self,
+        session: Session | None = None,
+        *,
+        repository: object | None = None,
+        db: object | None = None,
+    ) -> None:
+        if repository is None and db is not None:
+            repository = db
+
+        if session is None and isinstance(repository, Session):
+            session = repository  # repository actually a session
+            repository = None
+
         self.session = session
+        self._repository = repository
 
     # --------- Tenant management ---------
-    def list_tenants(self, acting_user: ActingUser, *, include_inactive: bool = False) -> list[Tenant]:
+    def list_tenants(
+        self, acting_user: ActingUser, *, include_inactive: bool = False
+    ) -> list[Tenant]:
         self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
         stmt = select(Tenant)
         if not include_inactive:
@@ -185,15 +237,38 @@ class AdministrationService:
         self._assert_tenant_scope(acting_user, tenant.id)
         return tenant
 
-    def create_tenant(self, acting_user: ActingUser, payload: TenantCreateInput) -> Tenant:
+    def create_tenant(
+        self, acting_user: ActingUser, payload: TenantCreateInput
+    ) -> Tenant:
+        if not acting_user.is_superuser():
+            raise PermissionDeniedError("Only superusers can create new tenants")
         self._require_roles(acting_user, {SUPERADMIN_ROLE})
+
+        if self._repository is not None:
+            if getattr(
+                self._repository, "find_tenant_by_slug", None
+            ) and self._repository.find_tenant_by_slug(payload.slug):
+                raise BusinessRuleViolation(
+                    f"Tenant slug '{payload.slug}' is already in use"
+                )
+            creator = getattr(self._repository, "create_tenant", None)
+            if creator is None:
+                raise NotImplementedError("Repository does not implement create_tenant")
+            return creator(payload, acting_user=acting_user)
+
         if not payload.companies:
             raise BusinessRuleViolation("Tenant must include at least one company")
         if not payload.administrators:
-            raise BusinessRuleViolation("Tenant must include at least one administrator")
-        normalized_admin_roles = [self._normalize_roles(admin.roles) for admin in payload.administrators]
+            raise BusinessRuleViolation(
+                "Tenant must include at least one administrator"
+            )
+        normalized_admin_roles = [
+            self._normalize_roles(admin.roles) for admin in payload.administrators
+        ]
         if not any(TENANT_ADMIN_ROLE in roles for roles in normalized_admin_roles):
-            raise BusinessRuleViolation("At least one administrator must hold the tenantadmin role")
+            raise BusinessRuleViolation(
+                "At least one administrator must hold the tenantadmin role"
+            )
         if payload.is_default and self._default_tenant_exists():
             raise BusinessRuleViolation("Default tenant already configured")
 
@@ -227,7 +302,9 @@ class AdministrationService:
                     )
                 )
 
-            for admin_input, roles in zip(payload.administrators, normalized_admin_roles):
+            for admin_input, roles in zip(
+                payload.administrators, normalized_admin_roles
+            ):
                 self.session.add(
                     User(
                         tenant_id=tenant.id,
@@ -244,9 +321,13 @@ class AdministrationService:
                 self._assign_plan(tenant.id, payload.plan_id)
 
             self._commit()
-        except IntegrityError as exc:  # pragma: no cover - defensive guard for DB validations
+        except (
+            IntegrityError
+        ) as exc:  # pragma: no cover - defensive guard for DB validations
             self.session.rollback()
-            raise BusinessRuleViolation("Tenant data violates uniqueness constraints") from exc
+            raise BusinessRuleViolation(
+                "Tenant data violates uniqueness constraints"
+            ) from exc
 
         self.session.refresh(tenant)
         return tenant
@@ -262,7 +343,9 @@ class AdministrationService:
         if not companies:
             return []
         if len({company.tax_id for company in companies}) != len(companies):
-            raise BusinessRuleViolation("Duplicate tax ids provided in companies payload")
+            raise BusinessRuleViolation(
+                "Duplicate tax ids provided in companies payload"
+            )
 
         self._get_tenant(tenant_id)
         persisted: list[TenantCompany] = []
@@ -288,7 +371,9 @@ class AdministrationService:
             self._commit()
         except IntegrityError as exc:  # pragma: no cover - database guard
             self.session.rollback()
-            raise BusinessRuleViolation("Company data violates uniqueness constraints") from exc
+            raise BusinessRuleViolation(
+                "Company data violates uniqueness constraints"
+            ) from exc
 
         for entity in persisted:
             self.session.refresh(entity)
@@ -355,13 +440,17 @@ class AdministrationService:
             self._commit()
         except IntegrityError as exc:  # pragma: no cover - database guard
             self.session.rollback()
-            raise BusinessRuleViolation("Company update violates database constraints") from exc
+            raise BusinessRuleViolation(
+                "Company update violates database constraints"
+            ) from exc
 
         self.session.refresh(company)
         return company
 
     # --------- Plan management ---------
-    def create_commercial_plan(self, acting_user: ActingUser, payload: PlanCreateInput) -> CommercialPlan:
+    def create_commercial_plan(
+        self, acting_user: ActingUser, payload: PlanCreateInput
+    ) -> CommercialPlan:
         self._require_roles(acting_user, {SUPERADMIN_ROLE})
         if payload.max_users is not None and payload.max_users < 1:
             raise BusinessRuleViolation("Plan max_users must be positive")
@@ -385,7 +474,9 @@ class AdministrationService:
             self._commit()
         except IntegrityError as exc:  # pragma: no cover - database guard
             self.session.rollback()
-            raise BusinessRuleViolation("Plan already exists with the same name") from exc
+            raise BusinessRuleViolation(
+                "Plan already exists with the same name"
+            ) from exc
 
         self.session.refresh(plan)
         return plan
@@ -404,7 +495,9 @@ class AdministrationService:
         stmt = stmt.order_by(CommercialPlan.created_at)
         return list(self.session.execute(stmt).scalars().all())
 
-    def get_commercial_plan(self, acting_user: ActingUser, plan_id: UUID) -> CommercialPlan:
+    def get_commercial_plan(
+        self, acting_user: ActingUser, plan_id: UUID
+    ) -> CommercialPlan:
         self._require_roles(acting_user, {SUPERADMIN_ROLE})
         return self._get_plan(plan_id, allow_inactive=True)
 
@@ -441,12 +534,16 @@ class AdministrationService:
             self._commit()
         except IntegrityError as exc:  # pragma: no cover - database guard
             self.session.rollback()
-            raise BusinessRuleViolation("Plan update violates database constraints") from exc
+            raise BusinessRuleViolation(
+                "Plan update violates database constraints"
+            ) from exc
 
         self.session.refresh(plan)
         return plan
 
-    def assign_plan_to_tenant(self, acting_user: ActingUser, tenant_id: UUID, plan_id: UUID) -> TenantPlanSubscription:
+    def assign_plan_to_tenant(
+        self, acting_user: ActingUser, tenant_id: UUID, plan_id: UUID
+    ) -> TenantPlanSubscription:
         self._require_roles(acting_user, {SUPERADMIN_ROLE})
         subscription = self._assign_plan(tenant_id, plan_id)
         self._commit()
@@ -463,7 +560,9 @@ class AdministrationService:
     ) -> list[PaymentPlanTemplate]:
         self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
         self._assert_tenant_scope(acting_user, tenant_id)
-        stmt = select(PaymentPlanTemplate).where(PaymentPlanTemplate.tenant_id == tenant_id)
+        stmt = select(PaymentPlanTemplate).where(
+            PaymentPlanTemplate.tenant_id == tenant_id
+        )
         if not include_inactive:
             stmt = stmt.where(PaymentPlanTemplate.is_active.is_(True))
         stmt = stmt.order_by(PaymentPlanTemplate.product_code)
@@ -499,14 +598,15 @@ class AdministrationService:
             is_active=payload.is_active,
         )
         template.installments = [
-            PaymentPlanInstallment(period=item.period, amount=self._to_decimal(item.amount))
+            PaymentPlanInstallment(
+                period=item.period, amount=self._to_decimal(item.amount)
+            )
             for item in installments
         ]
         self.session.add(template)
         self._commit()
         self.session.refresh(template)
         return template
-
 
     def update_payment_plan_template(
         self,
@@ -519,16 +619,22 @@ class AdministrationService:
         template = self._get_payment_plan_template(template_id)
         self._assert_tenant_scope(acting_user, template.tenant_id)
         if template.tenant_id != tenant_id:
-            raise PermissionDeniedError("Template does not belong to the requested tenant")
+            raise PermissionDeniedError(
+                "Template does not belong to the requested tenant"
+            )
         if payload.name is not None:
             template.name = payload.name
         if payload.description is not None:
             template.description = payload.description
         if payload.principal is not None:
-            self._validate_payment_plan_values(payload.principal, template.discount_rate)
+            self._validate_payment_plan_values(
+                payload.principal, template.discount_rate
+            )
             template.principal = self._to_decimal(payload.principal)
         if payload.discount_rate is not None:
-            self._validate_payment_plan_values(template.principal, payload.discount_rate)
+            self._validate_payment_plan_values(
+                template.principal, payload.discount_rate
+            )
             template.discount_rate = self._to_decimal(payload.discount_rate)
         if payload.metadata is not None:
             template.metadata_json = payload.metadata
@@ -536,13 +642,21 @@ class AdministrationService:
             template.is_active = payload.is_active
 
         if payload.installments is not None:
-            installments = self._validate_payment_plan_installments(payload.installments)
+            installments = self._validate_payment_plan_installments(
+                payload.installments
+            )
             self.session.add(template)
             self.session.flush()
-            dialect_name = getattr(getattr(self.session.bind, "dialect", None), "name", None)
-            identifier = template.id.hex if dialect_name == "sqlite" else str(template.id)
+            dialect_name = getattr(
+                getattr(self.session.bind, "dialect", None), "name", None
+            )
+            identifier = (
+                template.id.hex if dialect_name == "sqlite" else str(template.id)
+            )
             self.session.execute(
-                text("DELETE FROM payment_plan_installments WHERE template_id = :template_id"),
+                text(
+                    "DELETE FROM payment_plan_installments WHERE template_id = :template_id"
+                ),
                 {"template_id": identifier},
             )
             self._commit()
@@ -561,9 +675,33 @@ class AdministrationService:
         self._commit()
         self.session.refresh(template)
         return template
+
     # --------- User management ---------
-    def create_user(self, acting_user: ActingUser, tenant_id: UUID, payload: UserInput) -> User:
+    def create_user(
+        self, acting_user: ActingUser, tenant_id: UUID, payload: UserInput
+    ) -> User:
         self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
+        if self._repository is not None:
+            if not (
+                acting_user.is_superuser() or acting_user.is_tenant_admin_for(tenant_id)
+            ):
+                raise PermissionDeniedError(
+                    "Tenant administrators can only manage their own tenant"
+                )
+            get_tenant = getattr(self._repository, "get_tenant", None)
+            tenant = get_tenant(tenant_id) if callable(get_tenant) else None
+            if tenant is None:
+                raise NotFoundError(f"Tenant with ID '{tenant_id}' not found")
+            finder = getattr(self._repository, "find_user_by_email", None)
+            if callable(finder) and finder(tenant_id, payload.email):
+                raise BusinessRuleViolation(
+                    f"User with email '{payload.email}' already exists"
+                )
+            creator = getattr(self._repository, "create_user", None)
+            if creator is None:
+                raise NotImplementedError("Repository does not implement create_user")
+            return creator(tenant_id, payload, acting_user=acting_user)
+
         self._assert_tenant_scope(acting_user, tenant_id)
         tenant = self._get_tenant(tenant_id)
 
@@ -608,11 +746,28 @@ class AdministrationService:
 
     def get_user(self, acting_user: ActingUser, user_id: UUID) -> User:
         self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
+        if self._repository is not None:
+            getter = getattr(self._repository, "get_user", None)
+            if getter is None:
+                raise NotImplementedError("Repository does not implement get_user")
+            user = getter(user_id)
+            if user is None:
+                raise NotFoundError(f"User with ID '{user_id}' not found")
+            if (
+                not acting_user.is_superuser()
+                and getattr(user, "tenant_id", None) != acting_user.tenant_id
+            ):
+                raise PermissionDeniedError(
+                    "Insufficient permissions to access this user"
+                )
+            return user
         user = self._get_user(user_id)
         self._assert_tenant_scope(acting_user, user.tenant_id)
         return user
 
-    def update_user(self, acting_user: ActingUser, user_id: UUID, payload: UserUpdateInput) -> User:
+    def update_user(
+        self, acting_user: ActingUser, user_id: UUID, payload: UserUpdateInput
+    ) -> User:
         self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
         user = self._get_user(user_id)
         self._assert_tenant_scope(acting_user, user.tenant_id)
@@ -632,18 +787,36 @@ class AdministrationService:
 
         if payload.is_active is not None and payload.is_active != user.is_active:
             if payload.is_active and user.is_suspended:
-                raise BusinessRuleViolation("Cannot activate a suspended user. Reinstate the account first")
+                raise BusinessRuleViolation(
+                    "Cannot activate a suspended user. Reinstate the account first"
+                )
             if payload.is_active:
                 self._ensure_user_limit(tenant, additional_users=1)
             else:
-                if TENANT_ADMIN_ROLE in original_roles and self._count_active_admins(user.tenant_id, exclude_user_id=user.id) == 0:
-                    raise BusinessRuleViolation("Tenant must retain at least one active tenant administrator")
+                if (
+                    TENANT_ADMIN_ROLE in original_roles
+                    and self._count_active_admins(
+                        user.tenant_id, exclude_user_id=user.id
+                    )
+                    == 0
+                ):
+                    raise BusinessRuleViolation(
+                        "Tenant must retain at least one active tenant administrator"
+                    )
             user.is_active = payload.is_active
 
         if payload.roles is not None:
-            if TENANT_ADMIN_ROLE in original_roles and TENANT_ADMIN_ROLE not in target_roles:
-                if self._count_active_admins(user.tenant_id, exclude_user_id=user.id) == 0:
-                    raise BusinessRuleViolation("Tenant must retain at least one active tenant administrator")
+            if (
+                TENANT_ADMIN_ROLE in original_roles
+                and TENANT_ADMIN_ROLE not in target_roles
+            ):
+                if (
+                    self._count_active_admins(user.tenant_id, exclude_user_id=user.id)
+                    == 0
+                ):
+                    raise BusinessRuleViolation(
+                        "Tenant must retain at least one active tenant administrator"
+                    )
             user.roles = sorted(target_roles)
             user.is_superuser = SUPERADMIN_ROLE in target_roles
 
@@ -652,19 +825,41 @@ class AdministrationService:
             self._commit()
         except IntegrityError as exc:  # pragma: no cover - database guard
             self.session.rollback()
-            raise BusinessRuleViolation("User update violates database constraints") from exc
+            raise BusinessRuleViolation(
+                "User update violates database constraints"
+            ) from exc
 
         self.session.refresh(user)
         return user
 
-    def suspend_user(self, acting_user: ActingUser, user_id: UUID, *, reason: str | None = None) -> User:
+    def suspend_user(
+        self, acting_user: ActingUser, user_id: UUID, reason: str | None = None
+    ) -> User:
         self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
+        if self._repository is not None:
+            if acting_user.id == user_id:
+                raise BusinessRuleViolation("Users cannot suspend their own account")
+            getter = getattr(self._repository, "get_user", None)
+            if getter is None:
+                raise NotImplementedError("Repository does not implement get_user")
+            user = getter(user_id)
+            if user is None:
+                raise NotFoundError(f"User with ID '{user_id}' not found")
+            suspender = getattr(self._repository, "suspend_user", None)
+            if suspender is None:
+                raise NotImplementedError("Repository does not implement suspend_user")
+            return suspender(user_id, reason=reason, acting_user=acting_user)
         user = self._get_user(user_id)
         self._assert_tenant_scope(acting_user, user.tenant_id)
         if user.is_suspended:
             raise BusinessRuleViolation("User is already suspended")
-        if TENANT_ADMIN_ROLE in (user.roles or []) and self._count_active_admins(user.tenant_id, exclude_user_id=user.id) == 0:
-            raise BusinessRuleViolation("Tenant must retain at least one active tenant administrator")
+        if (
+            TENANT_ADMIN_ROLE in (user.roles or [])
+            and self._count_active_admins(user.tenant_id, exclude_user_id=user.id) == 0
+        ):
+            raise BusinessRuleViolation(
+                "Tenant must retain at least one active tenant administrator"
+            )
 
         user.is_suspended = True
         user.suspended_at = self._now()
@@ -734,7 +929,10 @@ class AdministrationService:
         user = self._get_user(user_id)
         self._assert_tenant_scope(acting_user, user.tenant_id)
 
-        if not user.password_reset_token_hash or not user.password_reset_token_expires_at:
+        if (
+            not user.password_reset_token_hash
+            or not user.password_reset_token_expires_at
+        ):
             raise BusinessRuleViolation("No reset request found for this user")
         expires_at = user.password_reset_token_expires_at
         if expires_at.tzinfo is None:
@@ -767,14 +965,23 @@ class AdministrationService:
             raise BusinessRuleViolation(f"Unknown roles requested: {sorted(unknown)}")
         return sorted(normalized)
 
-    def _assert_role_assignment(self, acting_user: ActingUser, target_roles: Sequence[str] | set[str]) -> None:
+    def _assert_role_assignment(
+        self, acting_user: ActingUser, target_roles: Sequence[str] | set[str]
+    ) -> None:
         target = set(target_roles)
         if SUPERADMIN_ROLE in target and SUPERADMIN_ROLE not in acting_user.roles:
-            raise PermissionDeniedError("Only super administrators can assign the superadm role")
+            raise PermissionDeniedError(
+                "Only super administrators can assign the superadm role"
+            )
 
     def _assert_tenant_scope(self, acting_user: ActingUser, tenant_id: UUID) -> None:
-        if SUPERADMIN_ROLE not in acting_user.roles and acting_user.tenant_id != tenant_id:
-            raise PermissionDeniedError("Tenant administrators can only manage resources within their tenant")
+        if (
+            SUPERADMIN_ROLE not in acting_user.roles
+            and acting_user.tenant_id != tenant_id
+        ):
+            raise PermissionDeniedError(
+                "Tenant administrators can only manage resources within their tenant"
+            )
 
     @staticmethod
     def _normalize_email(email: str) -> str:
@@ -795,7 +1002,9 @@ class AdministrationService:
         return tenant
 
     def _default_tenant_exists(self) -> bool:
-        stmt = select(func.count()).select_from(Tenant).where(Tenant.is_default.is_(True))
+        stmt = (
+            select(func.count()).select_from(Tenant).where(Tenant.is_default.is_(True))
+        )
         return bool(self.session.execute(stmt).scalar_one())
 
     def _get_payment_plan_template(self, template_id: UUID) -> PaymentPlanTemplate:
@@ -814,12 +1023,14 @@ class AdministrationService:
             raise BusinessRuleViolation("product_code must be at most 128 characters")
         return normalized
 
-    def _validate_payment_plan_values(self, principal: float | Decimal, discount_rate: float | Decimal) -> None:
+    def _validate_payment_plan_values(
+        self, principal: float | Decimal, discount_rate: float | Decimal
+    ) -> None:
         principal_value = self._to_decimal(principal)
         discount_value = self._to_decimal(discount_rate)
-        if principal_value <= Decimal('0'):
+        if principal_value <= Decimal("0"):
             raise BusinessRuleViolation("principal must be greater than zero")
-        if discount_value < Decimal('0'):
+        if discount_value < Decimal("0"):
             raise BusinessRuleViolation("discount_rate must be zero or positive")
 
     def _validate_payment_plan_installments(
@@ -827,14 +1038,18 @@ class AdministrationService:
         installments: Sequence[PaymentPlanInstallmentInput],
     ) -> list[PaymentPlanInstallmentInput]:
         if not installments:
-            raise BusinessRuleViolation("Payment plan must include at least one installment")
+            raise BusinessRuleViolation(
+                "Payment plan must include at least one installment"
+            )
         seen: set[int] = set()
         validated: list[PaymentPlanInstallmentInput] = []
         for item in installments:
             if item.period < 1:
                 raise BusinessRuleViolation("Installment period must be at least 1")
             if item.amount <= 0:
-                raise BusinessRuleViolation("Installment amount must be greater than zero")
+                raise BusinessRuleViolation(
+                    "Installment amount must be greater than zero"
+                )
             if item.period in seen:
                 raise BusinessRuleViolation("Installment periods must be unique")
             seen.add(item.period)
@@ -848,14 +1063,18 @@ class AdministrationService:
             return value
         return Decimal(str(value))
 
-    def _get_plan(self, plan_id: UUID, *, allow_inactive: bool = False) -> CommercialPlan:
+    def _get_plan(
+        self, plan_id: UUID, *, allow_inactive: bool = False
+    ) -> CommercialPlan:
         stmt = select(CommercialPlan).where(CommercialPlan.id == plan_id)
         plan = self.session.execute(stmt).scalar_one_or_none()
         if plan is None:
             raise NotFoundError("Plan not found")
         owner = self._get_tenant(plan.tenant_id)
         if not owner.is_default:
-            raise BusinessRuleViolation("Commercial plans must belong to the default tenant")
+            raise BusinessRuleViolation(
+                "Commercial plans must belong to the default tenant"
+            )
         if not allow_inactive and not plan.is_active:
             raise BusinessRuleViolation("Plan is not active")
         return plan
@@ -874,7 +1093,9 @@ class AdministrationService:
             raise NotFoundError("User not found")
         return user
 
-    def _get_active_subscription(self, tenant_id: UUID) -> TenantPlanSubscription | None:
+    def _get_active_subscription(
+        self, tenant_id: UUID
+    ) -> TenantPlanSubscription | None:
         stmt = (
             select(TenantPlanSubscription)
             .where(
@@ -913,19 +1134,29 @@ class AdministrationService:
             return
         subscription = self._get_active_subscription(tenant.id)
         if subscription is None:
-            raise BusinessRuleViolation("Tenant does not have an active commercial plan")
+            raise BusinessRuleViolation(
+                "Tenant does not have an active commercial plan"
+            )
         plan = self._get_plan(subscription.plan_id)
         if plan.max_users is None:
             return
         active_users = self._count_active_users(tenant.id)
         if active_users + additional_users > plan.max_users:
-            raise BusinessRuleViolation("Tenant has reached the maximum number of active users for the current plan")
+            raise BusinessRuleViolation(
+                "Tenant has reached the maximum number of active users for the current plan"
+            )
 
     def _count_active_users(self, tenant_id: UUID) -> int:
-        stmt = select(func.count()).select_from(User).where(User.tenant_id == tenant_id, User.is_active.is_(True))
+        stmt = (
+            select(func.count())
+            .select_from(User)
+            .where(User.tenant_id == tenant_id, User.is_active.is_(True))
+        )
         return int(self.session.execute(stmt).scalar_one())
 
-    def _count_active_admins(self, tenant_id: UUID, *, exclude_user_id: UUID | None = None) -> int:
+    def _count_active_admins(
+        self, tenant_id: UUID, *, exclude_user_id: UUID | None = None
+    ) -> int:
         stmt = select(User).where(User.tenant_id == tenant_id, User.is_active.is_(True))
         if exclude_user_id:
             stmt = stmt.where(User.id != exclude_user_id)
@@ -947,14 +1178,3 @@ class AdministrationService:
         except Exception:  # pragma: no cover - defensive rollback
             self.session.rollback()
             raise
-
-
-
-
-
-
-
-
-
-
-

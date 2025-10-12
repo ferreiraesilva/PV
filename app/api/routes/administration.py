@@ -54,7 +54,9 @@ def get_administration_service(db: SessionDependency) -> AdministrationService:
     return AdministrationService(db)
 
 
-ServiceDependency = Annotated[AdministrationService, Depends(get_administration_service)]
+ServiceDependency = Annotated[
+    AdministrationService, Depends(get_administration_service)
+]
 
 
 def _acting_user(current_user: CurrentUser) -> ActingUser:
@@ -65,16 +67,24 @@ def _acting_user(current_user: CurrentUser) -> ActingUser:
             roles=frozenset(current_user.roles),
         )
     except ValueError as exc:  # pragma: no cover - defensive guard
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user context") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user context"
+        ) from exc
 
 
 def _handle_service_error(exc: Exception) -> None:
     if isinstance(exc, PermissionDeniedError):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)
+        ) from exc
     if isinstance(exc, NotFoundError):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
     if isinstance(exc, BusinessRuleViolation):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
     raise exc
 
 
@@ -83,7 +93,13 @@ def _set_audit_actor(request: Request, current_user: CurrentUser) -> None:
     request.state.audit_actor_user_id = current_user.user_id
 
 
-def _audit_entity(request: Request, *, resource_type: str, resource_id: UUID | str, payload: Any | None = None) -> None:
+def _audit_entity(
+    request: Request,
+    *,
+    resource_type: str,
+    resource_id: UUID | str,
+    payload: Any | None = None,
+) -> None:
     request.state.audit_resource_type = resource_type
     request.state.audit_resource_id = str(resource_id)
     if payload is not None:
@@ -228,7 +244,7 @@ def _user_response(user) -> UserResponse:
         fullName=user.full_name,
         roles=user.roles or [],
         isActive=user.is_active,
-        isSuspended=getattr(user, 'is_suspended', False),
+        isSuspended=getattr(user, "is_suspended", False),
         isSuperuser=user.is_superuser,
         createdAt=user.created_at,
         updatedAt=user.updated_at,
@@ -273,7 +289,9 @@ def get_plan(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _plan_response(plan)
-    _audit_entity(request, resource_type="commercial_plan", resource_id=plan.id, payload=response)
+    _audit_entity(
+        request, resource_type="commercial_plan", resource_id=plan.id, payload=response
+    )
     return response
 
 
@@ -307,7 +325,9 @@ def update_plan(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _plan_response(plan)
-    _audit_entity(request, resource_type="commercial_plan", resource_id=plan.id, payload=response)
+    _audit_entity(
+        request, resource_type="commercial_plan", resource_id=plan.id, payload=response
+    )
     return response
 
 
@@ -339,7 +359,9 @@ def create_plan(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _plan_response(plan)
-    _audit_entity(request, resource_type="commercial_plan", resource_id=plan.id, payload=response)
+    _audit_entity(
+        request, resource_type="commercial_plan", resource_id=plan.id, payload=response
+    )
     return response
 
 
@@ -352,16 +374,22 @@ def list_payment_plan_templates(
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     service: ServiceDependency,
     include_inactive: bool = Query(False),
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> list[PaymentPlanTemplateResponse]:
     _set_audit_actor(request, current_user)
     acting = _acting_user(current_user)
     try:
-        templates = service.list_payment_plan_templates(acting, UUID(tenant_id), include_inactive=include_inactive)
+        templates = service.list_payment_plan_templates(
+            acting, UUID(tenant_id), include_inactive=include_inactive
+        )
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     responses = [_payment_plan_template_response(template) for template in templates]
-    _audit_collection(request, resource_type="payment_plan_template", count=len(responses))
+    _audit_collection(
+        request, resource_type="payment_plan_template", count=len(responses)
+    )
     return responses
 
 
@@ -375,7 +403,9 @@ def create_payment_plan_template(
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: PaymentPlanTemplateCreateRequest,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> PaymentPlanTemplateResponse:
     _set_audit_actor(request, current_user)
     acting = _acting_user(current_user)
@@ -400,7 +430,12 @@ def create_payment_plan_template(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _payment_plan_template_response(template)
-    _audit_entity(request, resource_type="payment_plan_template", resource_id=template.id, payload=response)
+    _audit_entity(
+        request,
+        resource_type="payment_plan_template",
+        resource_id=template.id,
+        payload=response,
+    )
     return response
 
 
@@ -414,7 +449,9 @@ def update_payment_plan_template(
     template_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: PaymentPlanTemplateUpdateRequest,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> PaymentPlanTemplateResponse:
     _set_audit_actor(request, current_user)
     acting = _acting_user(current_user)
@@ -442,7 +479,12 @@ def update_payment_plan_template(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _payment_plan_template_response(template)
-    _audit_entity(request, resource_type="payment_plan_template", resource_id=template.id, payload=response)
+    _audit_entity(
+        request,
+        resource_type="payment_plan_template",
+        resource_id=template.id,
+        payload=response,
+    )
     return response
 
 
@@ -454,7 +496,9 @@ def list_tenants(
     request: Request,
     service: ServiceDependency,
     include_inactive: bool = Query(False),
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> list[TenantResponse]:
     _set_audit_actor(request, current_user)
     acting = _acting_user(current_user)
@@ -475,7 +519,9 @@ def get_tenant(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> TenantResponse:
     _set_audit_actor(request, current_user)
     acting = _acting_user(current_user)
@@ -484,7 +530,9 @@ def get_tenant(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _tenant_response(tenant)
-    _audit_entity(request, resource_type="tenant", resource_id=tenant.id, payload=response)
+    _audit_entity(
+        request, resource_type="tenant", resource_id=tenant.id, payload=response
+    )
     return response
 
 
@@ -517,7 +565,9 @@ def create_tenant(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _tenant_response(tenant)
-    _audit_entity(request, resource_type="tenant", resource_id=tenant.id, payload=response)
+    _audit_entity(
+        request, resource_type="tenant", resource_id=tenant.id, payload=response
+    )
     return response
 
 
@@ -536,11 +586,18 @@ def assign_plan(
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
     try:
-        subscription = service.assign_plan_to_tenant(acting_user, UUID(tenant_id), payload.planId)
+        subscription = service.assign_plan_to_tenant(
+            acting_user, UUID(tenant_id), payload.planId
+        )
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _subscription_response(subscription)
-    _audit_entity(request, resource_type="tenant_plan_subscription", resource_id=subscription.id, payload=response)
+    _audit_entity(
+        request,
+        resource_type="tenant_plan_subscription",
+        resource_id=subscription.id,
+        payload=response,
+    )
     return response
 
 
@@ -554,7 +611,9 @@ def attach_companies(
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: TenantCompaniesAttachRequest,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> list[TenantCompanyResponse]:
     _set_audit_actor(request, current_user)
     acting = _acting_user(current_user)
@@ -575,11 +634,18 @@ def attach_companies(
         for company in payload.companies
     ]
     try:
-        created = service.attach_companies_to_tenant(acting, UUID(tenant_id), companies_input)
+        created = service.attach_companies_to_tenant(
+            acting, UUID(tenant_id), companies_input
+        )
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     responses = [_company_response(company) for company in created]
-    _audit_entity(request, resource_type="tenant_companies", resource_id=f"attach:{tenant_id}", payload={"count": len(responses)})
+    _audit_entity(
+        request,
+        resource_type="tenant_companies",
+        resource_id=f"attach:{tenant_id}",
+        payload={"count": len(responses)},
+    )
     return responses
 
 
@@ -592,12 +658,16 @@ def list_companies(
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     service: ServiceDependency,
     include_inactive: bool = Query(False),
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> list[TenantCompanyResponse]:
     _set_audit_actor(request, current_user)
     acting = _acting_user(current_user)
     try:
-        companies = service.list_tenant_companies(acting, UUID(tenant_id), include_inactive=include_inactive)
+        companies = service.list_tenant_companies(
+            acting, UUID(tenant_id), include_inactive=include_inactive
+        )
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     responses = [_company_response(company) for company in companies]
@@ -614,7 +684,9 @@ def update_company(
     company_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: CompanyUpdateRequest,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> TenantCompanyResponse:
     _set_audit_actor(request, current_user)
     acting = _acting_user(current_user)
@@ -626,7 +698,9 @@ def update_company(
                 legal_name=payload.legalName,
                 trade_name=payload.tradeName,
                 tax_id=payload.taxId,
-                billing_email=str(payload.billingEmail) if payload.billingEmail else None,
+                billing_email=(
+                    str(payload.billingEmail) if payload.billingEmail else None
+                ),
                 billing_phone=payload.billingPhone,
                 address_line1=payload.addressLine1,
                 address_line2=payload.addressLine2,
@@ -640,7 +714,12 @@ def update_company(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _company_response(company)
-    _audit_entity(request, resource_type="tenant_company", resource_id=company.id, payload=response)
+    _audit_entity(
+        request,
+        resource_type="tenant_company",
+        resource_id=company.id,
+        payload=response,
+    )
     return response
 
 
@@ -654,7 +733,9 @@ def create_user(
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: UserCreate,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> UserResponse:
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
@@ -685,12 +766,16 @@ def list_users(
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     service: ServiceDependency,
     include_inactive: bool = Query(False),
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> list[UserResponse]:
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
     try:
-        users = service.list_users(acting_user, UUID(tenant_id), include_inactive=include_inactive)
+        users = service.list_users(
+            acting_user, UUID(tenant_id), include_inactive=include_inactive
+        )
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     responses = [_user_response(user) for user in users]
@@ -707,7 +792,9 @@ def get_user(
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     user_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> UserResponse:
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
@@ -730,7 +817,9 @@ def update_user(
     user_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: UserUpdateRequest,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> UserResponse:
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
@@ -762,7 +851,9 @@ def suspend_user(
     user_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: UserSuspendRequest,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> UserResponse:
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
@@ -771,7 +862,9 @@ def suspend_user(
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _user_response(user)
-    _audit_entity(request, resource_type="user_suspension", resource_id=user.id, payload=response)
+    _audit_entity(
+        request, resource_type="user_suspension", resource_id=user.id, payload=response
+    )
     return response
 
 
@@ -785,16 +878,25 @@ def reinstate_user(
     user_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: UserReinstateRequest,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> UserResponse:
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
     try:
-        user = service.reinstate_user(acting_user, UUID(user_id), reactivate=payload.reactivate)
+        user = service.reinstate_user(
+            acting_user, UUID(user_id), reactivate=payload.reactivate
+        )
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _user_response(user)
-    _audit_entity(request, resource_type="user_reinstatement", resource_id=user.id, payload=response)
+    _audit_entity(
+        request,
+        resource_type="user_reinstatement",
+        resource_id=user.id,
+        payload=response,
+    )
     return response
 
 
@@ -807,7 +909,9 @@ def initiate_password_reset(
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     user_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> PasswordResetResponse:
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
@@ -835,15 +939,23 @@ def confirm_password_reset(
     user_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
     payload: PasswordResetConfirmRequest,
     service: ServiceDependency,
-    current_user: CurrentUser = Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)),
+    current_user: CurrentUser = Depends(
+        require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE)
+    ),
 ) -> UserResponse:
     _set_audit_actor(request, current_user)
     acting_user = _acting_user(current_user)
     try:
-        user = service.complete_password_reset(acting_user, UUID(user_id), payload.token, payload.newPassword)
+        user = service.complete_password_reset(
+            acting_user, UUID(user_id), payload.token, payload.newPassword
+        )
     except Exception as exc:  # pragma: no cover - thin mapping
         _handle_service_error(exc)
     response = _user_response(user)
-    _audit_entity(request, resource_type="user_password_reset_confirm", resource_id=user.id, payload=response)
+    _audit_entity(
+        request,
+        resource_type="user_password_reset_confirm",
+        resource_id=user.id,
+        payload=response,
+    )
     return response
-

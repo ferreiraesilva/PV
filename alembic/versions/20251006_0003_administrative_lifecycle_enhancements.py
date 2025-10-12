@@ -1,4 +1,5 @@
 """Administrative lifecycle enhancements"""
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -14,7 +15,9 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.add_column(
         "users",
-        sa.Column("is_suspended", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column(
+            "is_suspended", sa.Boolean(), nullable=False, server_default=sa.false()
+        ),
     )
     op.add_column(
         "users",
@@ -30,11 +33,15 @@ def upgrade() -> None:
     )
     op.add_column(
         "users",
-        sa.Column("password_reset_token_expires_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "password_reset_token_expires_at", sa.DateTime(timezone=True), nullable=True
+        ),
     )
     op.add_column(
         "users",
-        sa.Column("password_reset_requested_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "password_reset_requested_at", sa.DateTime(timezone=True), nullable=True
+        ),
     )
 
     op.execute("UPDATE users SET is_suspended = FALSE WHERE is_suspended IS NULL")

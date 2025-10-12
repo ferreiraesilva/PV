@@ -20,12 +20,34 @@ class TestFinancialIndexRepository:
         repo = FinancialIndexRepository(db_session)
         tenant_id1 = uuid4()
         tenant_id2 = uuid4()
-        db_session.add_all([
-            FinancialIndexValue(tenant_id=tenant_id1, index_code="INCC", reference_date=date(2024, 2, 1), value=1.02),
-            FinancialIndexValue(tenant_id=tenant_id1, index_code="INCC", reference_date=date(2024, 1, 1), value=1.01),
-            FinancialIndexValue(tenant_id=tenant_id1, index_code="IGPM", reference_date=date(2024, 1, 1), value=1.03),
-            FinancialIndexValue(tenant_id=tenant_id2, index_code="INCC", reference_date=date(2024, 1, 1), value=1.04),
-        ])
+        db_session.add_all(
+            [
+                FinancialIndexValue(
+                    tenant_id=tenant_id1,
+                    index_code="INCC",
+                    reference_date=date(2024, 2, 1),
+                    value=1.02,
+                ),
+                FinancialIndexValue(
+                    tenant_id=tenant_id1,
+                    index_code="INCC",
+                    reference_date=date(2024, 1, 1),
+                    value=1.01,
+                ),
+                FinancialIndexValue(
+                    tenant_id=tenant_id1,
+                    index_code="IGPM",
+                    reference_date=date(2024, 1, 1),
+                    value=1.03,
+                ),
+                FinancialIndexValue(
+                    tenant_id=tenant_id2,
+                    index_code="INCC",
+                    reference_date=date(2024, 1, 1),
+                    value=1.04,
+                ),
+            ]
+        )
         db_session.commit()
 
         # Act
@@ -52,15 +74,24 @@ class TestFinancialIndexRepository:
         db_session.commit()
 
         # Assert
-        results = db_session.query(FinancialIndexValue).filter_by(tenant_id=tenant_id).all()
+        results = (
+            db_session.query(FinancialIndexValue).filter_by(tenant_id=tenant_id).all()
+        )
         assert len(results) == 2
         assert results[0].value == 1.05
 
-    def test_create_or_update_values_updates_existing_records(self, db_session: Session):
+    def test_create_or_update_values_updates_existing_records(
+        self, db_session: Session
+    ):
         # Arrange
         repo = FinancialIndexRepository(db_session)
         tenant_id = uuid4()
-        existing_record = FinancialIndexValue(tenant_id=tenant_id, index_code="INCC-M", reference_date=date(2024, 1, 1), value=1.0)
+        existing_record = FinancialIndexValue(
+            tenant_id=tenant_id,
+            index_code="INCC-M",
+            reference_date=date(2024, 1, 1),
+            value=1.0,
+        )
         db_session.add(existing_record)
         db_session.commit()
 
@@ -71,21 +102,30 @@ class TestFinancialIndexRepository:
         db_session.commit()
 
         # Assert
-        results = db_session.query(FinancialIndexValue).filter_by(tenant_id=tenant_id).all()
+        results = (
+            db_session.query(FinancialIndexValue).filter_by(tenant_id=tenant_id).all()
+        )
         assert len(results) == 1
         assert results[0].value == 1.5
 
-    def test_create_or_update_values_handles_mixed_create_and_update(self, db_session: Session):
+    def test_create_or_update_values_handles_mixed_create_and_update(
+        self, db_session: Session
+    ):
         # Arrange
         repo = FinancialIndexRepository(db_session)
         tenant_id = uuid4()
-        existing_record = FinancialIndexValue(tenant_id=tenant_id, index_code="INCC-M", reference_date=date(2024, 1, 1), value=1.0)
+        existing_record = FinancialIndexValue(
+            tenant_id=tenant_id,
+            index_code="INCC-M",
+            reference_date=date(2024, 1, 1),
+            value=1.0,
+        )
         db_session.add(existing_record)
         db_session.commit()
 
         values = [
             IndexValueInput(reference_date=date(2024, 1, 1), value=1.99),  # Update
-            IndexValueInput(reference_date=date(2024, 2, 1), value=2.0),   # Create
+            IndexValueInput(reference_date=date(2024, 2, 1), value=2.0),  # Create
         ]
 
         # Act
@@ -93,7 +133,11 @@ class TestFinancialIndexRepository:
         db_session.commit()
 
         # Assert
-        results = db_session.query(FinancialIndexValue).order_by(FinancialIndexValue.reference_date).all()
+        results = (
+            db_session.query(FinancialIndexValue)
+            .order_by(FinancialIndexValue.reference_date)
+            .all()
+        )
         assert len(results) == 2
         assert results[0].value == 1.99
         assert results[1].value == 2.0

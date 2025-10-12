@@ -1,6 +1,12 @@
 from datetime import date
 
-from app.services.financial import Cashflow, calculate_portfolio_value, calculate_simulation_metrics, payment, present_value
+from app.services.financial import (
+    Cashflow,
+    calculate_portfolio_value,
+    calculate_simulation_metrics,
+    payment,
+    present_value,
+)
 
 
 def test_present_value_matches_expected() -> None:
@@ -28,10 +34,30 @@ def test_simulation_metrics() -> None:
 
 def test_portfolio_value_handles_default_and_cancellation() -> None:
     cashflows = [
-        Cashflow(due_date=date(2026, 1, 1), amount=1000, probability_default=0.05, probability_cancellation=0.02),
-        Cashflow(due_date=date(2026, 2, 1), amount=1000, probability_default=0.08, probability_cancellation=0.03),
-        Cashflow(due_date=date(2026, 3, 1), amount=1500, probability_default=0.1, probability_cancellation=0.02),
+        Cashflow(
+            due_date=date(2026, 1, 1),
+            amount=1000,
+            probability_default=0.05,
+            probability_cancellation=0.02,
+        ),
+        Cashflow(
+            due_date=date(2026, 2, 1),
+            amount=1000,
+            probability_default=0.08,
+            probability_cancellation=0.03,
+        ),
+        Cashflow(
+            due_date=date(2026, 3, 1),
+            amount=1500,
+            probability_default=0.1,
+            probability_cancellation=0.02,
+        ),
     ]
-    result = calculate_portfolio_value(cashflows, discount_rate=0.15, default_multiplier=1.1, cancellation_multiplier=1.0)
+    result = calculate_portfolio_value(
+        cashflows,
+        discount_rate=0.15,
+        default_multiplier=1.1,
+        cancellation_multiplier=1.0,
+    )
     assert result["gross_present_value"] > result["net_present_value"]
     assert result["expected_losses"] > 0

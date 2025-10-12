@@ -8,8 +8,19 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class InstallmentInput(BaseModel):
-    due_date: date = Field(..., alias="dueDate")
+    due_date: date | None = Field(None, alias="dueDate")
+    period: int | None = None
     amount: float = Field(..., gt=0)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="after")
+    def _ensure_reference(self) -> "InstallmentInput":
+        if self.due_date is None and self.period is None:
+            raise ValueError("Installment must include dueDate or period")
+        if self.period is not None and self.period < 0:
+            raise ValueError("period must be non-negative")
+        return self
 
 
 class AdjustmentPayload(BaseModel):
@@ -30,7 +41,9 @@ class SimulationInput(BaseModel):
 class SimulationPlanPayload(BaseModel):
     key: Optional[str] = Field(None, min_length=1, max_length=64)
     label: Optional[str] = None
-    product_code: Optional[str] = Field(None, min_length=1, max_length=128, alias="productCode")
+    product_code: Optional[str] = Field(
+        None, min_length=1, max_length=128, alias="productCode"
+    )
     principal: float = Field(..., gt=0)
     discount_rate: float = Field(..., ge=0)
     adjustment: Optional[AdjustmentPayload] = None
@@ -41,7 +54,9 @@ class SimulationPlanPayload(BaseModel):
 
 class SimulationTemplateReference(BaseModel):
     template_id: Optional[UUID] = Field(None, alias="templateId")
-    product_code: Optional[str] = Field(None, min_length=1, max_length=128, alias="productCode")
+    product_code: Optional[str] = Field(
+        None, min_length=1, max_length=128, alias="productCode"
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 

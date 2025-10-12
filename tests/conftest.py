@@ -1,5 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core import security
 from app.audit import service as audit_service
@@ -9,6 +11,7 @@ from app.core.security import create_access_token
 from app.db.session import get_db
 from app.main import create_app
 from app.middleware.rate_limit import RateLimitMiddleware
+from app.db.models.financial_index import FinancialIndexValue
 
 TENANT_ID = "11111111-1111-1111-1111-111111111111"
 USER_ID = "44444444-4444-4444-4444-444444444444"
@@ -74,17 +77,19 @@ def superadmin_headers() -> dict[str, str]:
     )
     return {"Authorization": f"Bearer {token}"}
 
+
 @pytest.fixture(autouse=True)
 def _stub_password_context():
     original = security.pwd_context
+
     class _InlineContext:
         @staticmethod
         def hash(secret: str) -> str:
-            return f'hashed:{secret}'
+            return f"hashed:{secret}"
 
         @staticmethod
         def verify(plain: str, hashed: str) -> bool:
-            return hashed == f'hashed:{plain}'
+            return hashed == f"hashed:{plain}"
 
     security.pwd_context = _InlineContext()
     try:
@@ -101,3 +106,17 @@ def _noop_audit_persistence():
         yield
     finally:
         audit_service.AuditService.persist = original
+
+
+@pytest.fixture()
+def db_session() -> Session:
+    engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
+    FinancialIndexValue.__table__.create(bind=engine)
+    SessionLocal = sessionmaker(bind=engine, future=True, autoflush=False)
+    session = SessionLocal()
+    try:
+        yield session
+        session.rollback()
+    finally:
+        session.close()
+        engine.dispose()

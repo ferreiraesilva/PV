@@ -26,7 +26,11 @@ class UserRepository:
         return self.session.execute(stmt).scalar_one_or_none()
 
     def count_active_by_tenant(self, tenant_id: UUID | str) -> int:
-        stmt = select(func.count()).select_from(User).where(User.tenant_id == tenant_id, User.is_active.is_(True))
+        stmt = (
+            select(func.count())
+            .select_from(User)
+            .where(User.tenant_id == tenant_id, User.is_active.is_(True))
+        )
         return int(self.session.execute(stmt).scalar_one())
 
     def create(self, user: User) -> User:

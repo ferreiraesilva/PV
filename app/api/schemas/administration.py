@@ -6,7 +6,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.api.schemas.user import User as UserResponse
 from app.api.schemas.user import UserCreate, UserPatch
 
 
@@ -234,4 +233,3 @@ class PaymentPlanTemplateResponse(BaseModel):
 
 
 UserUpdateRequest = UserPatch
-

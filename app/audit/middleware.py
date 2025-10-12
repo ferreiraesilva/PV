@@ -21,10 +21,16 @@ class AuditMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self._audit_service = audit_service or AuditService()
 
-    async def dispatch(self, request: Request, call_next: Callable[..., Any]) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[..., Any]
+    ) -> Response:
         existing_request_id = getattr(request.state, "request_id", None)
         try:
-            request_uuid = uuid.UUID(str(existing_request_id)) if existing_request_id else uuid.uuid4()
+            request_uuid = (
+                uuid.UUID(str(existing_request_id))
+                if existing_request_id
+                else uuid.uuid4()
+            )
         except ValueError:
             request_uuid = uuid.uuid4()
         request.state.request_id = str(request_uuid)
@@ -45,7 +51,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
         payload_in = mask_payload(raw_body) if raw_body is not None else None
         payload_out_raw = getattr(request.state, "audit_payload_out", None)
-        payload_out = mask_payload(payload_out_raw) if payload_out_raw is not None else None
+        payload_out = (
+            mask_payload(payload_out_raw) if payload_out_raw is not None else None
+        )
         diffs_raw = getattr(request.state, "audit_diffs", None)
         diffs = mask_payload(diffs_raw) if diffs_raw is not None else None
 
@@ -63,7 +71,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
             except ValueError:
                 tenant_id = None
 
-        actor_roles: Sequence[str] | None = getattr(request.state, "audit_actor_roles", None)
+        actor_roles: Sequence[str] | None = getattr(
+            request.state, "audit_actor_roles", None
+        )
         if actor_roles and not isinstance(actor_roles, (list, tuple)):
             actor_roles = [actor_roles]  # type: ignore[list-item]
         roles = getattr(current_user, "roles", None) or actor_roles

@@ -13,7 +13,12 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_context import RequestContextMiddleware
-from app.observability.metrics import REQUEST_COUNTER, observe_request, registry, now_seconds
+from app.observability.metrics import (
+    REQUEST_COUNTER,
+    observe_request,
+    registry,
+    now_seconds,
+)
 
 settings = get_settings()
 
@@ -25,9 +30,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title=settings.project_name, version=settings.environment, lifespan=lifespan)
+    app = FastAPI(
+        title=settings.project_name, version=settings.environment, lifespan=lifespan
+    )
 
-    origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
+    origins = [
+        origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()
+    ]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins if origins else ["*"],
@@ -52,7 +61,9 @@ def create_app() -> FastAPI:
         start = now_seconds()
         response = await call_next(request)
         duration = now_seconds() - start
-        REQUEST_COUNTER.labels(request.method, request.url.path, str(response.status_code)).inc()
+        REQUEST_COUNTER.labels(
+            request.method, request.url.path, str(response.status_code)
+        ).inc()
         observe_request(request.url.path, duration)
         return response
 

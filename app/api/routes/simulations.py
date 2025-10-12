@@ -18,7 +18,11 @@ from app.api.schemas.simulation import (
 )
 from app.db.repositories.payment_plan_template import PaymentPlanTemplateRepository
 from app.db.session import get_db
-from app.services.simulation import AdjustmentLogic, SimulationPlan, _calculate_months_between
+from app.services.simulation import (
+    AdjustmentLogic,
+    SimulationPlan,
+    _calculate_months_between,
+)
 from app.db.repositories.financial_index import FinancialIndexRepository
 
 router = APIRouter(tags=["Simulations"], prefix="/t/{tenant_id}")
@@ -37,11 +41,39 @@ def _run_simulation(plan: SimulationPlan) -> SimulationResult:
     return SimulationResult(**metrics)
 
 
-def _snapshot(principal: float, discount_rate: float, installments: Iterable[InstallmentInput]) -> SimulationPlanSnapshot:
-    normalized = [InstallmentInput(due_date=item.due_date, amount=item.amount) for item in installments]
-    return SimulationPlanSnapshot(principal=principal, discount_rate=discount_rate, installments=normalized)
+def _coerce_installment(item: InstallmentInput | object) -> InstallmentInput:
+    if isinstance(item, InstallmentInput):
+        return item
+    return InstallmentInput(
+        due_date=getattr(item, "due_date", None),
+        period=getattr(item, "period", None),
+        amount=float(getattr(item, "amount")),
+    )
 
 
+def _period_offset(base_date: date, installment: InstallmentInput) -> int:
+    if installment.period is not None:
+        return int(installment.period)
+    if installment.due_date is None:
+        raise ValueError("Installment must define period or dueDate")
+    return _calculate_months_between(base_date, installment.due_date)
+
+
+def _snapshot(
+    principal: float,
+    discount_rate: float,
+    installments: Iterable[InstallmentInput | object],
+) -> SimulationPlanSnapshot:
+    normalized = [
+        InstallmentInput(due_date=inst.due_date, period=inst.period, amount=inst.amount)
+        for inst in (_coerce_installment(item) for item in installments)
+    ]
+    return SimulationPlanSnapshot(
+        principal=principal, discount_rate=discount_rate, installments=normalized
+    )
+
+
+@router.post("/simulations", response_model=SimulationBatchResponse)
 @router.post("/simulations/batches", response_model=SimulationBatchResponse)
 def create_simulation_batch(
     tenant_id: str,
@@ -56,15 +88,17 @@ def create_simulation_batch(
     try:
         tenant_uuid = UUID(tenant_id)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid tenant identifier") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid tenant identifier"
+        ) from exc
 
     if isinstance(payload, SimulationInput):
+        base_date = date.today()
         plan = SimulationPlan(
             principal=payload.principal,
             discount_rate=payload.discount_rate,
-            # Assuming a base date of today if not provided for simple simulation
             periods=[
-                (_calculate_months_between(date.today(), item.due_date), item.amount)
+                (_period_offset(base_date, item), item.amount)
                 for item in payload.installments
             ],
         )
@@ -78,7 +112,9 @@ def create_simulation_batch(
                     label=None,
                     product_code=None,
                     template_id=None,
-                    plan=_snapshot(payload.principal, payload.discount_rate, payload.installments),
+                    plan=_snapshot(
+                        payload.principal, payload.discount_rate, payload.installments
+                    ),
                     result=result,
                 )
             ],
@@ -90,8 +126,12 @@ def create_simulation_batch(
     repository = PaymentPlanTemplateRepository(db)
     index_repository = FinancialIndexRepository(db)
 
-    requested_ids = {ref.template_id for ref in batch.templates if ref.template_id is not None}
-    requested_codes = {ref.product_code.lower() for ref in batch.templates if ref.product_code}
+    requested_ids = {
+        ref.template_id for ref in batch.templates if ref.template_id is not None
+    }
+    requested_codes = {
+        ref.product_code.lower() for ref in batch.templates if ref.product_code
+    }
     requested_codes.update(
         plan.product_code.strip().lower()
         for plan in batch.plans
@@ -124,22 +164,24 @@ def create_simulation_batch(
                 tenant_id=tenant_uuid,
             )
 
+        base_date = (
+            plan_payload.adjustment.base_date
+            if plan_payload.adjustment
+            else date.today()
+        )
         plan = SimulationPlan(
             principal=plan_payload.principal,
             discount_rate=plan_payload.discount_rate,
             adjustment_logic=adjustment_logic,
             periods=[
-                (
-                    _calculate_months_between(
-                        plan_payload.adjustment.base_date if plan_payload.adjustment else date.today(), item.due_date
-                    ),
-                    item.amount,
-                )
+                (_period_offset(base_date, item), item.amount)
                 for item in plan_payload.installments
             ],
         )
         result = _run_simulation(plan)
-        plan_product_code = plan_payload.product_code.strip() if plan_payload.product_code else None
+        plan_product_code = (
+            plan_payload.product_code.strip() if plan_payload.product_code else None
+        )
         outcomes.append(
             SimulationOutcome(
                 source="input",
@@ -147,7 +189,11 @@ def create_simulation_batch(
                 label=plan_payload.label,
                 product_code=plan_product_code,
                 template_id=None,
-                plan=_snapshot(plan_payload.principal, plan_payload.discount_rate, plan_payload.installments),
+                plan=_snapshot(
+                    plan_payload.principal,
+                    plan_payload.discount_rate,
+                    plan_payload.installments,
+                ),
                 result=result,
             )
         )
@@ -155,14 +201,24 @@ def create_simulation_batch(
         if plan_product_code:
             template = templates_by_code.get(plan_product_code.lower())
             if template and template.id not in included_template_ids:
-                base_date_for_template = plan_payload.adjustment.base_date if plan_payload.adjustment else date.today()
+                base_date_for_template = (
+                    plan_payload.adjustment.base_date
+                    if plan_payload.adjustment
+                    else date.today()
+                )
+                template_installments = [
+                    _coerce_installment(item) for item in template.installments
+                ]
                 template_plan = SimulationPlan(
                     principal=float(template.principal),
                     discount_rate=float(template.discount_rate),
                     # Templates currently don't have adjustment data in this flow
                     periods=[
-                        (_calculate_months_between(base_date_for_template, item.due_date), float(item.amount))
-                        for item in template.installments
+                        (
+                            _period_offset(base_date_for_template, inst),
+                            float(inst.amount),
+                        )
+                        for inst in template_installments
                     ],
                 )
                 template_result = _run_simulation(template_plan)
@@ -176,10 +232,7 @@ def create_simulation_batch(
                         plan=_snapshot(
                             float(template.principal),
                             float(template.discount_rate),
-                            [
-                                InstallmentInput(due_date=item.due_date, amount=float(item.amount))
-                                for item in template.installments
-                            ],
+                            template_installments,
                         ),
                         result=template_result,
                     )
@@ -193,16 +246,22 @@ def create_simulation_batch(
         elif ref.product_code and ref.product_code.strip():
             template = templates_by_code.get(ref.product_code.strip().lower())
         if template is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment plan template not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Payment plan template not found",
+            )
         if template.id in included_template_ids:
             continue
+        template_installments = [
+            _coerce_installment(item) for item in template.installments
+        ]
         template_plan = SimulationPlan(
             principal=float(template.principal),
             discount_rate=float(template.discount_rate),
             # Templates currently don't have adjustment data in this flow
             periods=[
-                (_calculate_months_between(date.today(), item.due_date), float(item.amount))
-                for item in template.installments
+                (_period_offset(date.today(), inst), float(inst.amount))
+                for inst in template_installments
             ],
         )
         template_result = _run_simulation(template_plan)
@@ -216,10 +275,7 @@ def create_simulation_batch(
                 plan=_snapshot(
                     float(template.principal),
                     float(template.discount_rate),
-                    [
-                        InstallmentInput(due_date=item.due_date, amount=float(item.amount))
-                        for item in template.installments
-                    ],
+                    template_installments,
                 ),
                 result=template_result,
             )

@@ -55,8 +55,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if limit_exceeded:
             retry_after = max(int(reset_at - now), 1)
             RATE_LIMIT_COUNTER.labels(endpoint=request.url.path).inc()
-            logger.bind(component="rate_limit", request_id=getattr(request.state, "request_id", None)).warning(
-                {"message": "Rate limit exceeded", "key": key, "retry_after": retry_after}
+            logger.bind(
+                component="rate_limit",
+                request_id=getattr(request.state, "request_id", None),
+            ).warning(
+                {
+                    "message": "Rate limit exceeded",
+                    "key": key,
+                    "retry_after": retry_after,
+                }
             )
             payload = ErrorResponse(
                 code="rate_limit_exceeded",

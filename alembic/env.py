@@ -27,6 +27,7 @@ else:
 
 try:
     from app.db.base import Base  # type: ignore
+
     target_metadata = Base.metadata
 except Exception:
     target_metadata = None

@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.db.base import Base
+from app.db.base import Base  # noqa: F401
 
 
 class UUIDMixin:
@@ -13,5 +13,12 @@ class UUIDMixin:
 
 
 class TimestampMixin:
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

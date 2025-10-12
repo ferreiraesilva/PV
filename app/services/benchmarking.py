@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import io
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Tuple
 from uuid import UUID
 
 try:
@@ -45,10 +45,14 @@ class BenchmarkIngestResult:
 
 
 class BenchmarkRepository:
-    def store(self, result: BenchmarkIngestResult) -> None:  # pragma: no cover - interface
+    def store(
+        self, result: BenchmarkIngestResult
+    ) -> None:  # pragma: no cover - interface
         raise NotImplementedError
 
-    def list(self, tenant_id: UUID, batch_id: UUID) -> List[AggregatedBenchmark]:  # pragma: no cover - interface
+    def list(
+        self, tenant_id: UUID, batch_id: UUID
+    ) -> List[AggregatedBenchmark]:  # pragma: no cover - interface
         raise NotImplementedError
 
 
@@ -73,7 +77,9 @@ class BenchmarkingService:
     def __init__(self, repository: BenchmarkRepository | None = None) -> None:
         self.repository = repository or InMemoryBenchmarkRepository()
 
-    def ingest_dataset(self, tenant_id: UUID, batch_id: UUID, *, filename: str, content: bytes) -> BenchmarkIngestResult:
+    def ingest_dataset(
+        self, tenant_id: UUID, batch_id: UUID, *, filename: str, content: bytes
+    ) -> BenchmarkIngestResult:
         if len(content) > self.MAX_FILE_SIZE_BYTES:
             raise ValueError("Dataset exceeds maximum size of 2MB")
 
@@ -99,7 +105,9 @@ class BenchmarkingService:
         self.repository.store(result)
         return result
 
-    def list_aggregations(self, tenant_id: UUID, batch_id: UUID) -> List[AggregatedBenchmark]:
+    def list_aggregations(
+        self, tenant_id: UUID, batch_id: UUID
+    ) -> List[AggregatedBenchmark]:
         return self.repository.list(tenant_id, batch_id)
 
     def _parse_file(self, filename: str, content: bytes) -> List[Dict[str, str]]:
@@ -113,7 +121,9 @@ class BenchmarkingService:
     def _parse_csv(self, content: bytes) -> List[Dict[str, str]]:
         text = content.decode("utf-8-sig")
         reader = csv.DictReader(io.StringIO(text))
-        reader.fieldnames = [_normalize_header(name) for name in reader.fieldnames or []]
+        reader.fieldnames = [
+            _normalize_header(name) for name in reader.fieldnames or []
+        ]
         rows = [self._select_required_columns(row) for row in reader]
         return rows
 
@@ -123,10 +133,16 @@ class BenchmarkingService:
         stream = io.BytesIO(content)
         workbook = load_workbook(stream, read_only=True)
         sheet = workbook.active
-        headers = [_normalize_header(str(cell.value)) for cell in next(sheet.iter_rows(min_row=1, max_row=1))]
+        headers = [
+            _normalize_header(str(cell.value))
+            for cell in next(sheet.iter_rows(min_row=1, max_row=1))
+        ]
         rows: List[Dict[str, str]] = []
         for excel_row in sheet.iter_rows(min_row=2):
-            row_dict = {headers[idx]: (str(cell.value) if cell.value is not None else "") for idx, cell in enumerate(excel_row)}
+            row_dict = {
+                headers[idx]: (str(cell.value) if cell.value is not None else "")
+                for idx, cell in enumerate(excel_row)
+            }
             rows.append(self._select_required_columns(row_dict))
         return rows
 
@@ -171,11 +187,15 @@ class BenchmarkingService:
             return f"{normalized}*"
         return f"{normalized[:2]}*"
 
-    def _aggregate(self, records: Iterable[BenchmarkRecord]) -> List[AggregatedBenchmark]:
+    def _aggregate(
+        self, records: Iterable[BenchmarkRecord]
+    ) -> List[AggregatedBenchmark]:
         buckets: Dict[Tuple[str, str, str], Dict[str, float]] = {}
         for record in records:
             key = (record.metric_code, record.segment, record.region)
-            stats = buckets.setdefault(key, {"count": 0, "sum": 0.0, "min": record.value, "max": record.value})
+            stats = buckets.setdefault(
+                key, {"count": 0, "sum": 0.0, "min": record.value, "max": record.value}
+            )
             stats["count"] += 1
             stats["sum"] += record.value
             stats["min"] = min(stats["min"], record.value)

@@ -1,5 +1,4 @@
 import uuid
-from uuid import UUID
 
 import pytest
 from sqlalchemy import create_engine, select
@@ -46,7 +45,9 @@ def session() -> Session:
         PaymentPlanInstallment.__table__,
     ]
     Base.metadata.create_all(engine, tables=tables)
-    TestingSession = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+    TestingSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, future=True
+    )
     session = TestingSession()
     try:
         yield session
@@ -85,7 +86,9 @@ def _company() -> CompanyInput:
 
 
 def _super_admin(default_tenant: Tenant) -> ActingUser:
-    return ActingUser(id=uuid.uuid4(), tenant_id=default_tenant.id, roles=frozenset({SUPERADMIN_ROLE}))
+    return ActingUser(
+        id=uuid.uuid4(), tenant_id=default_tenant.id, roles=frozenset({SUPERADMIN_ROLE})
+    )
 
 
 @pytest.fixture()
@@ -93,27 +96,43 @@ def superadmin(default_tenant: Tenant) -> ActingUser:
     return _super_admin(default_tenant)
 
 
-def test_create_tenant_requires_tenant_admin_role(service: AdministrationService, superadmin: ActingUser) -> None:
+def test_create_tenant_requires_tenant_admin_role(
+    service: AdministrationService, superadmin: ActingUser
+) -> None:
     tenant_input = TenantCreateInput(
         name="Client One",
         slug="client-one",
         companies=[_company()],
-        administrators=[UserInput(email="owner@client.test", password="Secret123", roles=[TENANT_USER_ROLE])],
+        administrators=[
+            UserInput(
+                email="owner@client.test",
+                password="Secret123",
+                roles=[TENANT_USER_ROLE],
+            )
+        ],
     )
 
     with pytest.raises(BusinessRuleViolation, match="tenantadmin role"):
         service.create_tenant(superadmin, tenant_input)
 
 
-def test_create_user_respects_plan_limit(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
-    plan = service.create_commercial_plan(superadmin, PlanCreateInput(name="Starter", max_users=2))
+def test_create_user_respects_plan_limit(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
+    plan = service.create_commercial_plan(
+        superadmin, PlanCreateInput(name="Starter", max_users=2)
+    )
 
     tenant_payload = TenantCreateInput(
         name="Client Two",
         slug="client-two",
         companies=[_company()],
         administrators=[
-            UserInput(email="admin@client2.test", password="Secret123", roles=[TENANT_ADMIN_ROLE])
+            UserInput(
+                email="admin@client2.test",
+                password="Secret123",
+                roles=[TENANT_ADMIN_ROLE],
+            )
         ],
         plan_id=plan.id,
     )
@@ -122,25 +141,39 @@ def test_create_user_respects_plan_limit(service: AdministrationService, default
     service.create_user(
         superadmin,
         tenant.id,
-        UserInput(email="user1@client2.test", password="Secret123", roles=[TENANT_USER_ROLE]),
+        UserInput(
+            email="user1@client2.test", password="Secret123", roles=[TENANT_USER_ROLE]
+        ),
     )
 
     with pytest.raises(BusinessRuleViolation, match="maximum number of active users"):
         service.create_user(
             superadmin,
             tenant.id,
-            UserInput(email="user2@client2.test", password="Secret123", roles=[TENANT_USER_ROLE]),
+            UserInput(
+                email="user2@client2.test",
+                password="Secret123",
+                roles=[TENANT_USER_ROLE],
+            ),
         )
 
 
-def test_update_user_prevents_disabling_last_admin(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
-    plan = service.create_commercial_plan(superadmin, PlanCreateInput(name="Growth", max_users=5))
+def test_update_user_prevents_disabling_last_admin(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
+    plan = service.create_commercial_plan(
+        superadmin, PlanCreateInput(name="Growth", max_users=5)
+    )
     tenant_payload = TenantCreateInput(
         name="Client Three",
         slug="client-three",
         companies=[_company()],
         administrators=[
-            UserInput(email="admin@client3.test", password="Secret123", roles=[TENANT_ADMIN_ROLE])
+            UserInput(
+                email="admin@client3.test",
+                password="Secret123",
+                roles=[TENANT_ADMIN_ROLE],
+            )
         ],
         plan_id=plan.id,
     )
@@ -148,16 +181,28 @@ def test_update_user_prevents_disabling_last_admin(service: AdministrationServic
 
     admin_user = service.list_users(superadmin, tenant.id, include_inactive=True)[0]
 
-    with pytest.raises(BusinessRuleViolation, match="at least one active tenant administrator"):
+    with pytest.raises(
+        BusinessRuleViolation, match="at least one active tenant administrator"
+    ):
         service.update_user(superadmin, admin_user.id, UserUpdateInput(is_active=False))
 
-    with pytest.raises(BusinessRuleViolation, match="at least one active tenant administrator"):
-        service.update_user(superadmin, admin_user.id, UserUpdateInput(roles=[TENANT_USER_ROLE]))
+    with pytest.raises(
+        BusinessRuleViolation, match="at least one active tenant administrator"
+    ):
+        service.update_user(
+            superadmin, admin_user.id, UserUpdateInput(roles=[TENANT_USER_ROLE])
+        )
 
 
-def test_assign_plan_switches_active_subscription(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
-    starter = service.create_commercial_plan(superadmin, PlanCreateInput(name="Plan A", max_users=10))
-    premium = service.create_commercial_plan(superadmin, PlanCreateInput(name="Plan B", max_users=25))
+def test_assign_plan_switches_active_subscription(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
+    starter = service.create_commercial_plan(
+        superadmin, PlanCreateInput(name="Plan A", max_users=10)
+    )
+    premium = service.create_commercial_plan(
+        superadmin, PlanCreateInput(name="Plan B", max_users=25)
+    )
 
     tenant = service.create_tenant(
         superadmin,
@@ -166,7 +211,11 @@ def test_assign_plan_switches_active_subscription(service: AdministrationService
             slug="client-four",
             companies=[_company()],
             administrators=[
-                UserInput(email="admin@client4.test", password="Secret123", roles=[TENANT_ADMIN_ROLE])
+                UserInput(
+                    email="admin@client4.test",
+                    password="Secret123",
+                    roles=[TENANT_ADMIN_ROLE],
+                )
             ],
             plan_id=starter.id,
         ),
@@ -174,9 +223,15 @@ def test_assign_plan_switches_active_subscription(service: AdministrationService
 
     service.assign_plan_to_tenant(superadmin, tenant.id, premium.id)
 
-    subscriptions = service.session.execute(
-        select(TenantPlanSubscription).where(TenantPlanSubscription.tenant_id == tenant.id)
-    ).scalars().all()
+    subscriptions = (
+        service.session.execute(
+            select(TenantPlanSubscription).where(
+                TenantPlanSubscription.tenant_id == tenant.id
+            )
+        )
+        .scalars()
+        .all()
+    )
     active = [subscription for subscription in subscriptions if subscription.is_active]
 
     assert len(active) == 1
@@ -184,7 +239,9 @@ def test_assign_plan_switches_active_subscription(service: AdministrationService
     assert any(not subscription.is_active for subscription in subscriptions)
 
 
-def test_attach_companies_to_tenant(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
+def test_attach_companies_to_tenant(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
     tenant = service.create_tenant(
         superadmin,
         TenantCreateInput(
@@ -192,7 +249,11 @@ def test_attach_companies_to_tenant(service: AdministrationService, default_tena
             slug="client-five",
             companies=[_company()],
             administrators=[
-                UserInput(email="owner@client5.test", password="Secret123", roles=[TENANT_ADMIN_ROLE])
+                UserInput(
+                    email="owner@client5.test",
+                    password="Secret123",
+                    roles=[TENANT_ADMIN_ROLE],
+                )
             ],
         ),
     )
@@ -223,14 +284,22 @@ def test_attach_companies_to_tenant(service: AdministrationService, default_tena
     created = service.attach_companies_to_tenant(superadmin, tenant.id, extra_companies)
 
     assert len(created) == 2
-    stored = service.session.execute(
-        select(TenantCompany).where(TenantCompany.tenant_id == tenant.id)
-    ).scalars().all()
+    stored = (
+        service.session.execute(
+            select(TenantCompany).where(TenantCompany.tenant_id == tenant.id)
+        )
+        .scalars()
+        .all()
+    )
     assert len(stored) == 3
 
 
-def test_suspend_and_reinstate_user(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
-    plan = service.create_commercial_plan(superadmin, PlanCreateInput(name="Ops", max_users=5))
+def test_suspend_and_reinstate_user(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
+    plan = service.create_commercial_plan(
+        superadmin, PlanCreateInput(name="Ops", max_users=5)
+    )
     tenant = service.create_tenant(
         superadmin,
         TenantCreateInput(
@@ -238,7 +307,11 @@ def test_suspend_and_reinstate_user(service: AdministrationService, default_tena
             slug="client-six",
             companies=[_company()],
             administrators=[
-                UserInput(email="admin@client6.test", password="Secret123", roles=[TENANT_ADMIN_ROLE])
+                UserInput(
+                    email="admin@client6.test",
+                    password="Secret123",
+                    roles=[TENANT_ADMIN_ROLE],
+                )
             ],
             plan_id=plan.id,
         ),
@@ -247,7 +320,9 @@ def test_suspend_and_reinstate_user(service: AdministrationService, default_tena
     user = service.create_user(
         superadmin,
         tenant.id,
-        UserInput(email="user@client6.test", password="Secret123", roles=[TENANT_USER_ROLE]),
+        UserInput(
+            email="user@client6.test", password="Secret123", roles=[TENANT_USER_ROLE]
+        ),
     )
 
     suspended = service.suspend_user(superadmin, user.id, reason="Fraud investigation")
@@ -261,8 +336,12 @@ def test_suspend_and_reinstate_user(service: AdministrationService, default_tena
     assert reinstated.suspension_reason is None
 
 
-def test_list_users_excludes_inactive_and_suspended(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
-    plan = service.create_commercial_plan(superadmin, PlanCreateInput(name="Scale", max_users=10))
+def test_list_users_excludes_inactive_and_suspended(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
+    plan = service.create_commercial_plan(
+        superadmin, PlanCreateInput(name="Scale", max_users=10)
+    )
     tenant = service.create_tenant(
         superadmin,
         TenantCreateInput(
@@ -270,7 +349,11 @@ def test_list_users_excludes_inactive_and_suspended(service: AdministrationServi
             slug="client-seven",
             companies=[_company()],
             administrators=[
-                UserInput(email="admin@client7.test", password="Secret123", roles=[TENANT_ADMIN_ROLE])
+                UserInput(
+                    email="admin@client7.test",
+                    password="Secret123",
+                    roles=[TENANT_ADMIN_ROLE],
+                )
             ],
             plan_id=plan.id,
         ),
@@ -279,17 +362,27 @@ def test_list_users_excludes_inactive_and_suspended(service: AdministrationServi
     active = service.create_user(
         superadmin,
         tenant.id,
-        UserInput(email="active@client7.test", password="Secret123", roles=[TENANT_USER_ROLE]),
+        UserInput(
+            email="active@client7.test", password="Secret123", roles=[TENANT_USER_ROLE]
+        ),
     )
     inactive = service.create_user(
         superadmin,
         tenant.id,
-        UserInput(email="inactive@client7.test", password="Secret123", roles=[TENANT_USER_ROLE]),
+        UserInput(
+            email="inactive@client7.test",
+            password="Secret123",
+            roles=[TENANT_USER_ROLE],
+        ),
     )
     suspended = service.create_user(
         superadmin,
         tenant.id,
-        UserInput(email="suspended@client7.test", password="Secret123", roles=[TENANT_USER_ROLE]),
+        UserInput(
+            email="suspended@client7.test",
+            password="Secret123",
+            roles=[TENANT_USER_ROLE],
+        ),
     )
 
     # deactivate and suspend accordingly
@@ -308,8 +401,12 @@ def test_list_users_excludes_inactive_and_suspended(service: AdministrationServi
     assert suspended.email not in emails
 
 
-def test_password_reset_flow(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
-    plan = service.create_commercial_plan(superadmin, PlanCreateInput(name="Support", max_users=5))
+def test_password_reset_flow(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
+    plan = service.create_commercial_plan(
+        superadmin, PlanCreateInput(name="Support", max_users=5)
+    )
     tenant = service.create_tenant(
         superadmin,
         TenantCreateInput(
@@ -317,7 +414,11 @@ def test_password_reset_flow(service: AdministrationService, default_tenant: Ten
             slug="client-eight",
             companies=[_company()],
             administrators=[
-                UserInput(email="admin@client8.test", password="Secret123", roles=[TENANT_ADMIN_ROLE])
+                UserInput(
+                    email="admin@client8.test",
+                    password="Secret123",
+                    roles=[TENANT_ADMIN_ROLE],
+                )
             ],
             plan_id=plan.id,
         ),
@@ -326,24 +427,40 @@ def test_password_reset_flow(service: AdministrationService, default_tenant: Ten
     user = service.create_user(
         superadmin,
         tenant.id,
-        UserInput(email="user@client8.test", password="Secret123", roles=[TENANT_USER_ROLE]),
+        UserInput(
+            email="user@client8.test", password="Secret123", roles=[TENANT_USER_ROLE]
+        ),
     )
-    original_hash = service.session.execute(select(User).where(User.id == user.id)).scalar_one().hashed_password
+    original_hash = (
+        service.session.execute(select(User).where(User.id == user.id))
+        .scalar_one()
+        .hashed_password
+    )
 
     token = service.initiate_password_reset(superadmin, user.id)
-    stored = service.session.execute(select(User).where(User.id == user.id)).scalar_one()
+    stored = service.session.execute(
+        select(User).where(User.id == user.id)
+    ).scalar_one()
     assert stored.password_reset_token_hash is not None
     assert stored.password_reset_token_expires_at is not None
 
-    updated = service.complete_password_reset(superadmin, user.id, token.token, "NewSecret123")
-    refreshed = service.session.execute(select(User).where(User.id == updated.id)).scalar_one()
+    updated = service.complete_password_reset(
+        superadmin, user.id, token.token, "NewSecret123"
+    )
+    refreshed = service.session.execute(
+        select(User).where(User.id == updated.id)
+    ).scalar_one()
     assert refreshed.password_reset_token_hash is None
     assert verify_password("NewSecret123", refreshed.hashed_password)
     assert refreshed.hashed_password != original_hash
 
 
-def test_update_commercial_plan_toggles_active(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
-    plan = service.create_commercial_plan(superadmin, PlanCreateInput(name="Enterprise"))
+def test_update_commercial_plan_toggles_active(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
+    plan = service.create_commercial_plan(
+        superadmin, PlanCreateInput(name="Enterprise")
+    )
     updated = service.update_commercial_plan(
         superadmin,
         plan.id,
@@ -353,7 +470,9 @@ def test_update_commercial_plan_toggles_active(service: AdministrationService, d
     assert updated.max_users == 50
 
 
-def test_list_tenants_scopes_for_admin(service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser) -> None:
+def test_list_tenants_scopes_for_admin(
+    service: AdministrationService, default_tenant: Tenant, superadmin: ActingUser
+) -> None:
     tenant = service.create_tenant(
         superadmin,
         TenantCreateInput(
@@ -361,12 +480,22 @@ def test_list_tenants_scopes_for_admin(service: AdministrationService, default_t
             slug="client-nine",
             companies=[_company()],
             administrators=[
-                UserInput(email="admin@client9.test", password="Secret123", roles=[TENANT_ADMIN_ROLE])
+                UserInput(
+                    email="admin@client9.test",
+                    password="Secret123",
+                    roles=[TENANT_ADMIN_ROLE],
+                )
             ],
         ),
     )
-    admin_user = service.session.execute(select(User).where(User.email == "admin@client9.test")).scalar_one()
-    tenant_admin = ActingUser(id=admin_user.id, tenant_id=tenant.id, roles=frozenset({TENANT_ADMIN_ROLE, TENANT_USER_ROLE}))
+    admin_user = service.session.execute(
+        select(User).where(User.email == "admin@client9.test")
+    ).scalar_one()
+    tenant_admin = ActingUser(
+        id=admin_user.id,
+        tenant_id=tenant.id,
+        roles=frozenset({TENANT_ADMIN_ROLE, TENANT_USER_ROLE}),
+    )
 
     tenants_for_admin = service.list_tenants(tenant_admin)
     assert {t.slug for t in tenants_for_admin} == {tenant.slug}
@@ -375,7 +504,12 @@ def test_list_tenants_scopes_for_admin(service: AdministrationService, default_t
     assert {t.slug for t in tenants_for_super} >= {tenant.slug, default_tenant.slug}
 
 
-def _create_template(service: AdministrationService, tenant: Tenant, actor: ActingUser, code: str = "plan-basic"):
+def _create_template(
+    service: AdministrationService,
+    tenant: Tenant,
+    actor: ActingUser,
+    code: str = "plan-basic",
+):
     return service.create_payment_plan_template(
         actor,
         tenant.id,
@@ -399,9 +533,13 @@ def test_create_payment_plan_template_persists_entities(
 ) -> None:
     template = _create_template(service, default_tenant, superadmin)
 
-    stored = service.session.execute(
-        select(PaymentPlanTemplate).where(PaymentPlanTemplate.id == template.id)
-    ).unique().scalar_one()
+    stored = (
+        service.session.execute(
+            select(PaymentPlanTemplate).where(PaymentPlanTemplate.id == template.id)
+        )
+        .unique()
+        .scalar_one()
+    )
     assert stored.product_code == "plan-basic"
     assert len(stored.installments) == 2
     assert {item.period for item in stored.installments} == {1, 2}
@@ -463,8 +601,3 @@ def test_update_payment_plan_template_replaces_installments(
     assert float(updated.principal) == 6000
     assert len(updated.installments) == 3
     assert {item.period for item in updated.installments} == {1, 2, 3}
-
-
-
-
-

@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Dict, Iterable
+from typing import Any, Iterable
 
 SENSITIVE_KEYS = {"password", "secret", "token", "authorization", "cpf", "cnpj"}
 

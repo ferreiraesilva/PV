@@ -99,7 +99,9 @@ def test_list_plans_passes_include_flag(client, superadmin_headers, _clear_overr
 
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
-    response = client.get("/v1/admin/plans?include_inactive=true", headers=superadmin_headers)
+    response = client.get(
+        "/v1/admin/plans?include_inactive=true", headers=superadmin_headers
+    )
 
     assert response.status_code == 200
     assert captured["include_inactive"] is True
@@ -286,7 +288,9 @@ def test_suspend_user_invokes_service(client, superadmin_headers, _clear_overrid
     assert captured["reason"] == "fraud"
 
 
-def test_initiate_password_reset_returns_token(client, superadmin_headers, _clear_overrides):
+def test_initiate_password_reset_returns_token(
+    client, superadmin_headers, _clear_overrides
+):
     tenant_uuid = uuid.UUID(TENANT_ID)
 
     class StubToken:
@@ -313,7 +317,9 @@ def test_initiate_password_reset_returns_token(client, superadmin_headers, _clea
     assert response.json()["token"] == "token123"
 
 
-def test_confirm_password_reset_calls_service(client, superadmin_headers, _clear_overrides):
+def test_confirm_password_reset_calls_service(
+    client, superadmin_headers, _clear_overrides
+):
     tenant_uuid = uuid.UUID(TENANT_ID)
     captured = {}
 
@@ -352,7 +358,9 @@ def test_confirm_password_reset_calls_service(client, superadmin_headers, _clear
     assert captured["password"] == "Secret123"
 
 
-def test_create_payment_plan_template_requires_admin(client, auth_headers, _clear_overrides):
+def test_create_payment_plan_template_requires_admin(
+    client, auth_headers, _clear_overrides
+):
     response = client.post(
         f"/v1/t/{TENANT_ID}/admin/payment-plans",
         headers=auth_headers,
@@ -366,7 +374,9 @@ def test_create_payment_plan_template_requires_admin(client, auth_headers, _clea
     assert response.status_code == 403
 
 
-def test_create_payment_plan_template_returns_payload(client, superadmin_headers, _clear_overrides):
+def test_create_payment_plan_template_returns_payload(
+    client, superadmin_headers, _clear_overrides
+):
     captured = {}
 
     class StubService:
@@ -388,7 +398,9 @@ def test_create_payment_plan_template_returns_payload(client, superadmin_headers
                 created_at=now,
                 updated_at=now,
                 installments=[
-                    SimpleNamespace(id=uuid.uuid4(), period=item.period, amount=item.amount)
+                    SimpleNamespace(
+                        id=uuid.uuid4(), period=item.period, amount=item.amount
+                    )
                     for item in payload.installments
                 ],
             )
@@ -417,7 +429,9 @@ def test_create_payment_plan_template_returns_payload(client, superadmin_headers
     assert captured["tenant_id"] == UUID(TENANT_ID)
 
 
-def test_list_payment_plan_templates_returns_collection(client, superadmin_headers, _clear_overrides):
+def test_list_payment_plan_templates_returns_collection(
+    client, superadmin_headers, _clear_overrides
+):
     expected = [
         SimpleNamespace(
             id=uuid.uuid4(),
@@ -439,7 +453,9 @@ def test_list_payment_plan_templates_returns_collection(client, superadmin_heade
     ]
 
     class StubService:
-        def list_payment_plan_templates(self, acting_user, tenant_id, include_inactive: bool = False):
+        def list_payment_plan_templates(
+            self, acting_user, tenant_id, include_inactive: bool = False
+        ):
             return expected
 
     app.dependency_overrides[get_administration_service] = lambda: StubService()
@@ -454,12 +470,16 @@ def test_list_payment_plan_templates_returns_collection(client, superadmin_heade
     assert body[0]["productCode"] == "standard"
 
 
-def test_update_payment_plan_template_calls_service(client, superadmin_headers, _clear_overrides):
+def test_update_payment_plan_template_calls_service(
+    client, superadmin_headers, _clear_overrides
+):
     captured = {}
     template_id = uuid.uuid4()
 
     class StubService:
-        def update_payment_plan_template(self, acting_user, tenant_id, update_id, payload):
+        def update_payment_plan_template(
+            self, acting_user, tenant_id, update_id, payload
+        ):
             captured["tenant_id"] = tenant_id
             captured["update_id"] = update_id
             captured["payload"] = payload
@@ -477,9 +497,12 @@ def test_update_payment_plan_template_calls_service(client, superadmin_headers, 
                 created_at=now,
                 updated_at=now,
                 installments=[
-                    SimpleNamespace(id=uuid.uuid4(), period=item.period, amount=item.amount)
+                    SimpleNamespace(
+                        id=uuid.uuid4(), period=item.period, amount=item.amount
+                    )
                     for item in (payload.installments or [])
-                ] or [SimpleNamespace(id=uuid.uuid4(), period=1, amount=2500)],
+                ]
+                or [SimpleNamespace(id=uuid.uuid4(), period=1, amount=2500)],
             )
 
     app.dependency_overrides[get_administration_service] = lambda: StubService()
@@ -502,7 +525,3 @@ def test_update_payment_plan_template_calls_service(client, superadmin_headers, 
     assert captured["tenant_id"] == UUID(TENANT_ID)
     assert captured["update_id"] == template_id
     assert len(body["installments"]) == 2
-
-
-
-

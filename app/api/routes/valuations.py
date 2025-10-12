@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 
 from app.api.deps import CurrentUser, require_roles
-from app.api.schemas.simulation import CashflowInput, ScenarioResult, ValuationInput, ValuationResponse
+from app.api.schemas.simulation import ScenarioResult, ValuationInput, ValuationResponse
 from app.db.session import get_db
 from app.services.financial import Cashflow
 from app.services.simulation import PortfolioScenario, evaluate_portfolio
@@ -16,7 +16,9 @@ def _record_audit(request: Request, payload: dict) -> None:
     request.state.audit_resource_type = "valuation_execution"
 
 
-@router.post("/valuations/snapshots/{snapshot_id}/results", response_model=ValuationResponse)
+@router.post(
+    "/valuations/snapshots/{snapshot_id}/results", response_model=ValuationResponse
+)
 def evaluate_snapshot(
     tenant_id: str,
     snapshot_id: str,

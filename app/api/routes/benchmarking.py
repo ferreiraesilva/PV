@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, status, UploadFile
 
 from app.api.deps import CurrentUser, require_roles
-from app.api.schemas.benchmarking import BenchmarkAggregationsResponse, BenchmarkIngestResponse
+from app.api.schemas.benchmarking import (
+    BenchmarkAggregationsResponse,
+    BenchmarkIngestResponse,
+)
 from app.db.session import get_db
 from app.services.benchmarking import AggregatedBenchmark, BenchmarkingService
 
@@ -18,7 +22,9 @@ def _parse_uuid(raw: str, *, field_name: str) -> UUID:
     try:
         return UUID(raw)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid {field_name}") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid {field_name}"
+        ) from exc
 
 
 def _set_audit_context(
@@ -51,7 +57,9 @@ def _set_audit_context(
     request.state.audit_diffs = payload
 
 
-def _to_response_items(aggregations: list[AggregatedBenchmark]) -> list[dict[str, object]]:
+def _to_response_items(
+    aggregations: list[AggregatedBenchmark],
+) -> list[dict[str, object]]:
     return [
         {
             "metricCode": item.metric_code,
@@ -71,22 +79,36 @@ async def ingest_benchmark_dataset(
     tenant_id: str,
     batch_id: str,
     request: Request,
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(None),
     current_user: CurrentUser = Depends(require_roles("user", "superuser")),
     db=Depends(get_db),  # noqa: ARG001 - future persistence
 ) -> BenchmarkIngestResponse:
     tenant_uuid = _parse_uuid(tenant_id, field_name="tenant_id")
     batch_uuid = _parse_uuid(batch_id, field_name="batch_id")
-    content = await file.read()
+    filename_override: Optional[str] = request.query_params.get("filename")
+
+    if file is not None:
+        content = await file.read()
+        filename = file.filename or filename_override or "dataset.bin"
+    else:
+        content = await request.body()
+        if not content:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="File content required"
+            )
+        filename = filename_override or "dataset.bin"
+
     try:
         result = service.ingest_dataset(
             tenant_uuid,
             batch_uuid,
-            filename=file.filename or "dataset.bin",
+            filename=filename,
             content=content,
         )
     except (ValueError, OSError) as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
 
     _set_audit_context(
         request,
@@ -105,7 +127,9 @@ async def ingest_benchmark_dataset(
     )
 
 
-@router.get("/batches/{batch_id}/aggregations", response_model=BenchmarkAggregationsResponse)
+@router.get(
+    "/batches/{batch_id}/aggregations", response_model=BenchmarkAggregationsResponse
+)
 def list_benchmark_aggregations(
     tenant_id: str,
     batch_id: str,
