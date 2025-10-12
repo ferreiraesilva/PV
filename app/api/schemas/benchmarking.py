@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AggregatedBenchmarkResponse(BaseModel):
@@ -14,8 +14,7 @@ class AggregatedBenchmarkResponse(BaseModel):
     min_value: float = Field(..., alias="minValue")
     max_value: float = Field(..., alias="maxValue")
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class BenchmarkIngestResponse(BaseModel):
@@ -25,8 +24,7 @@ class BenchmarkIngestResponse(BaseModel):
     discarded_rows: int = Field(..., alias="discardedRows")
     aggregations: list[AggregatedBenchmarkResponse]
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class BenchmarkAggregationsResponse(BaseModel):
@@ -34,5 +32,4 @@ class BenchmarkAggregationsResponse(BaseModel):
     batch_id: UUID = Field(..., alias="batchId")
     aggregations: list[AggregatedBenchmarkResponse]
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
