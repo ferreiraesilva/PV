@@ -41,7 +41,10 @@ export default function LoginPage() {
       <div className="login-card card">
         <header>
           <h1>Entrar no SAFV</h1>
-          <p>Informe o tenant e suas credenciais para acessar as simulações e dashboards.</p>
+          <p>
+            Informe o tenant e suas credenciais para acessar as simulações e
+            dashboards.
+          </p>
         </header>
         <form className="stack" onSubmit={handleSubmit}>
           <div className="form-field">

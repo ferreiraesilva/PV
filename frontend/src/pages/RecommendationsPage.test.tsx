@@ -10,8 +10,14 @@ import { CalculationJobStatus, RecommendationRunResponse } from '../api/types';
 vi.mock('../hooks/useAuth');
 vi.mock('../api/recommendations');
 
-const mockCreateRecommendationRun = vi.spyOn(RecommendationsAPI, 'createRecommendationRun');
-const mockGetRecommendationRun = vi.spyOn(RecommendationsAPI, 'getRecommendationRun');
+const mockCreateRecommendationRun = vi.spyOn(
+  RecommendationsAPI,
+  'createRecommendationRun'
+);
+const mockGetRecommendationRun = vi.spyOn(
+  RecommendationsAPI,
+  'getRecommendationRun'
+);
 
 describe('RecommendationsPage', () => {
   beforeEach(() => {
@@ -40,7 +46,13 @@ describe('RecommendationsPage', () => {
       tenantId: 'test-tenant',
       runType: 'pricing',
       status: 'completed',
-      items: [{ title: 'Recommendation 1', description: 'Details here', priority: 'high' }],
+      items: [
+        {
+          title: 'Recommendation 1',
+          description: 'Details here',
+          priority: 'high',
+        },
+      ],
       createdAt: new Date().toISOString(),
     };
     mockGetRecommendationRun.mockResolvedValue(mockRunResponse);
@@ -51,19 +63,29 @@ describe('RecommendationsPage', () => {
     expect(screen.getByText('Recomendações (IA)')).toBeInTheDocument();
     expect(screen.getByLabelText('Tipo do run')).toBeInTheDocument();
     expect(screen.getByLabelText('Snapshot ID (opcional)')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Iniciar run de recomendações/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Consultar run/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Iniciar run de recomendações/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Consultar run/i })
+    ).toBeInTheDocument();
   });
 
   it('should call createRecommendationRun with correct payload on form submission', async () => {
     render(<RecommendationsPage />);
 
     // Fill out the form
-    fireEvent.change(screen.getByLabelText('Tipo do run'), { target: { value: 'churn' } });
-    fireEvent.change(screen.getByLabelText('Snapshot ID (opcional)'), { target: { value: 'snap-456' } });
+    fireEvent.change(screen.getByLabelText('Tipo do run'), {
+      target: { value: 'churn' },
+    });
+    fireEvent.change(screen.getByLabelText('Snapshot ID (opcional)'), {
+      target: { value: 'snap-456' },
+    });
 
     // Submit the form
-    fireEvent.click(screen.getByRole('button', { name: /Iniciar run de recomendações/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Iniciar run de recomendações/i })
+    );
 
     await waitFor(() => {
       expect(mockCreateRecommendationRun).toHaveBeenCalledTimes(1);
@@ -75,7 +97,7 @@ describe('RecommendationsPage', () => {
       expect.objectContaining({
         runType: 'churn',
         snapshotId: 'snap-456',
-      }),
+      })
     );
 
     // Check if the job status is displayed
@@ -87,7 +109,9 @@ describe('RecommendationsPage', () => {
     render(<RecommendationsPage />);
 
     // Set a runId to fetch
-    fireEvent.change(screen.getByLabelText('Run ID'), { target: { value: 'job-123' } });
+    fireEvent.change(screen.getByLabelText('Run ID'), {
+      target: { value: 'job-123' },
+    });
 
     // Click the fetch button
     fireEvent.click(screen.getByRole('button', { name: /Consultar run/i }));
@@ -96,7 +120,11 @@ describe('RecommendationsPage', () => {
       expect(mockGetRecommendationRun).toHaveBeenCalledTimes(1);
     });
 
-    expect(mockGetRecommendationRun).toHaveBeenCalledWith('test-tenant', 'job-123', 'test-token');
+    expect(mockGetRecommendationRun).toHaveBeenCalledWith(
+      'test-tenant',
+      'job-123',
+      'test-token'
+    );
 
     // Check if the run details are displayed
     expect(await screen.findByText('Detalhes do run')).toBeInTheDocument();
@@ -104,19 +132,27 @@ describe('RecommendationsPage', () => {
   });
 
   it('should display an error if starting a run fails', async () => {
-    mockCreateRecommendationRun.mockRejectedValue(new Error('Failed to start run.'));
+    mockCreateRecommendationRun.mockRejectedValue(
+      new Error('Failed to start run.')
+    );
     render(<RecommendationsPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Iniciar run de recomendações/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Iniciar run de recomendações/i })
+    );
 
     expect(await screen.findByText('Failed to start run.')).toBeInTheDocument();
   });
 
   it('should display an error if fetching a run fails', async () => {
-    mockGetRecommendationRun.mockRejectedValue(new Error('Failed to fetch run.'));
+    mockGetRecommendationRun.mockRejectedValue(
+      new Error('Failed to fetch run.')
+    );
     render(<RecommendationsPage />);
 
-    fireEvent.change(screen.getByLabelText('Run ID'), { target: { value: 'job-123' } });
+    fireEvent.change(screen.getByLabelText('Run ID'), {
+      target: { value: 'job-123' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /Consultar run/i }));
 
     expect(await screen.findByText('Failed to fetch run.')).toBeInTheDocument();
@@ -126,18 +162,26 @@ describe('RecommendationsPage', () => {
     mockCreateRecommendationRun.mockImplementation(() => new Promise(() => {})); // Never resolves
     render(<RecommendationsPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Iniciar run de recomendações/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Iniciar run de recomendações/i })
+    );
 
-    expect(screen.getByRole('button', { name: /Enviando.../i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Enviando.../i })
+    ).toBeInTheDocument();
   });
 
   it('should show fetching state on consult button', () => {
     mockGetRecommendationRun.mockImplementation(() => new Promise(() => {})); // Never resolves
     render(<RecommendationsPage />);
 
-    fireEvent.change(screen.getByLabelText('Run ID'), { target: { value: 'job-123' } });
+    fireEvent.change(screen.getByLabelText('Run ID'), {
+      target: { value: 'job-123' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /Consultar run/i }));
 
-    expect(screen.getByRole('button', { name: /Consultando.../i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Consultando.../i })
+    ).toBeInTheDocument();
   });
 });

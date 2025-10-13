@@ -5,7 +5,7 @@ export async function evaluateValuation(
   tenantId: string,
   snapshotId: string,
   token: string,
-  payload: ValuationRequest,
+  payload: ValuationRequest
 ): Promise<ValuationResponse> {
   return apiFetch<ValuationResponse>(
     `/t/${encodeURIComponent(tenantId)}/valuations/snapshots/${encodeURIComponent(snapshotId)}/results`,
@@ -13,6 +13,6 @@ export async function evaluateValuation(
       method: 'POST',
       token,
       body: payload,
-    },
+    }
   );
 }

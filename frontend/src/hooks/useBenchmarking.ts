@@ -1,7 +1,14 @@
 import { FormEvent, useState } from 'react';
 
-import { ingestBenchmarkDataset, listBenchmarkAggregations } from '../api/benchmarking';
-import type { BenchmarkAggregationItem, BenchmarkAggregationsResponse, BenchmarkIngestResponse } from '../api/types';
+import {
+  ingestBenchmarkDataset,
+  listBenchmarkAggregations,
+} from '../api/benchmarking';
+import type {
+  BenchmarkAggregationItem,
+  BenchmarkAggregationsResponse,
+  BenchmarkIngestResponse,
+} from '../api/types';
 import { useAuth } from './useAuth'; // Assuming useAuth is in the same hooks directory
 
 interface AggregationState {
@@ -44,7 +51,12 @@ export const useBenchmarking = () => {
 
     try {
       setLoading(true);
-      const response: BenchmarkIngestResponse = await ingestBenchmarkDataset(tenantId, batchId, accessToken, file);
+      const response: BenchmarkIngestResponse = await ingestBenchmarkDataset(
+        tenantId,
+        batchId,
+        accessToken,
+        file
+      );
       setAggregation({
         batchId: response.batchId,
         rows: response.aggregations,
@@ -68,15 +80,30 @@ export const useBenchmarking = () => {
     setError(null);
     try {
       setFetching(true);
-      const response: BenchmarkAggregationsResponse = await listBenchmarkAggregations(tenantId, batchId, accessToken);
-      setAggregation({ batchId: response.batchId, rows: response.aggregations });
+      const response: BenchmarkAggregationsResponse =
+        await listBenchmarkAggregations(tenantId, batchId, accessToken);
+      setAggregation({
+        batchId: response.batchId,
+        rows: response.aggregations,
+      });
     } catch (err) {
-      const message = (err as Error).message ?? 'Não foi possível recuperar agregações.';
+      const message =
+        (err as Error).message ?? 'Não foi possível recuperar agregações.';
       setError(message);
     } finally {
       setFetching(false);
     }
   };
 
-  return { batchId, setBatchId, aggregation, error, loading, fetching, handleFileChange, handleIngest, fetchAggregations };
+  return {
+    batchId,
+    setBatchId,
+    aggregation,
+    error,
+    loading,
+    fetching,
+    handleFileChange,
+    handleIngest,
+    fetchAggregations,
+  };
 };

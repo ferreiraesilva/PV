@@ -31,7 +31,14 @@ describe('useValuations', () => {
     // Mock the valuation API
     vi.spyOn(ValuationsAPI, 'evaluateValuation').mockResolvedValue({
       tenant_id: mockTenantId,
-      results: [{ code: 'base', gross_present_value: 1000, net_present_value: 950, expected_losses: 50 }],
+      results: [
+        {
+          code: 'base',
+          gross_present_value: 1000,
+          net_present_value: 950,
+          expected_losses: 50,
+        },
+      ],
     });
   });
 
@@ -76,7 +83,9 @@ describe('useValuations', () => {
       await result.current.handleSubmit(mockEvent);
     });
 
-    expect(result.current.error).toBe('Informe o snapshotId que será usado como referência.');
+    expect(result.current.error).toBe(
+      'Informe o snapshotId que será usado como referência.'
+    );
     expect(ValuationsAPI.evaluateValuation).not.toHaveBeenCalled();
   });
 
@@ -94,7 +103,9 @@ describe('useValuations', () => {
       await result.current.handleSubmit(mockEvent);
     });
 
-    expect(result.current.error).toBe('Não são permitidos cenários com códigos duplicados. Por favor, ajuste os códigos e tente novamente.');
+    expect(result.current.error).toBe(
+      'Não são permitidos cenários com códigos duplicados. Por favor, ajuste os códigos e tente novamente.'
+    );
     expect(ValuationsAPI.evaluateValuation).not.toHaveBeenCalled();
   });
 
@@ -133,15 +144,21 @@ describe('useValuations', () => {
     expect(result.current.result?.results[0].code).toBe('base');
 
     expect(evaluateValuationSpy).toHaveBeenCalledTimes(1);
-    expect(evaluateValuationSpy).toHaveBeenCalledWith(mockTenantId, mockAccessToken, {
-      cashflows: expect.any(Array),
-      scenarios: expect.any(Array),
-    });
+    expect(evaluateValuationSpy).toHaveBeenCalledWith(
+      mockTenantId,
+      mockAccessToken,
+      {
+        cashflows: expect.any(Array),
+        scenarios: expect.any(Array),
+      }
+    );
   });
 
   it('should handle API error on submission', async () => {
     const errorMessage = 'API Failure';
-    const evaluateValuationSpy = vi.spyOn(ValuationsAPI, 'evaluateValuation').mockRejectedValue(new Error(errorMessage));
+    const evaluateValuationSpy = vi
+      .spyOn(ValuationsAPI, 'evaluateValuation')
+      .mockRejectedValue(new Error(errorMessage));
     const { result } = renderHook(() => useValuations());
 
     act(() => {

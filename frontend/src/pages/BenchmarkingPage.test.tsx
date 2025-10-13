@@ -50,7 +50,9 @@ describe('BenchmarkingPage', () => {
     expect(screen.getByText('Benchmarking de mercado')).toBeInTheDocument();
     expect(screen.getByLabelText('Batch ID')).toBeInTheDocument();
     expect(screen.getByLabelText('Arquivo benchmarking')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Enviar dataset/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Enviar dataset/i })
+    ).toBeInTheDocument();
   });
 
   it('should call setBatchId when the batch ID input is changed', () => {
@@ -70,38 +72,72 @@ describe('BenchmarkingPage', () => {
 
   it('should call handleIngest when the form is submitted', () => {
     render(<BenchmarkingPage />);
-    const submitButton = screen.getByRole('button', { name: /Enviar dataset/i });
+    const submitButton = screen.getByRole('button', {
+      name: /Enviar dataset/i,
+    });
     fireEvent.click(submitButton);
     expect(mockActions.handleIngest).toHaveBeenCalledTimes(1);
   });
 
   it('should call fetchAggregations when the refresh button is clicked', () => {
     render(<BenchmarkingPage />);
-    const refreshButton = screen.getByRole('button', { name: /Atualizar agregações/i });
+    const refreshButton = screen.getByRole('button', {
+      name: /Atualizar agregações/i,
+    });
     fireEvent.click(refreshButton);
     expect(mockActions.fetchAggregations).toHaveBeenCalledTimes(1);
   });
 
   it('should display an error message when error state is set', () => {
-    mockUseBenchmarking.mockReturnValue({ ...mockActions, batchId: '', aggregation: null, error: 'Falha no processamento.', loading: false, fetching: false });
+    mockUseBenchmarking.mockReturnValue({
+      ...mockActions,
+      batchId: '',
+      aggregation: null,
+      error: 'Falha no processamento.',
+      loading: false,
+      fetching: false,
+    });
     render(<BenchmarkingPage />);
     expect(screen.getByText('Falha no processamento.')).toBeInTheDocument();
   });
 
   it('should display "Processando..." on the submit button when loading', () => {
-    mockUseBenchmarking.mockReturnValue({ ...mockActions, batchId: '', aggregation: null, error: null, loading: true, fetching: false });
+    mockUseBenchmarking.mockReturnValue({
+      ...mockActions,
+      batchId: '',
+      aggregation: null,
+      error: null,
+      loading: true,
+      fetching: false,
+    });
     render(<BenchmarkingPage />);
-    expect(screen.getByRole('button', { name: /Processando.../i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Processando.../i })
+    ).toBeInTheDocument();
   });
 
   it('should display "Buscando..." on the refresh button when fetching', () => {
-    mockUseBenchmarking.mockReturnValue({ ...mockActions, batchId: '', aggregation: null, error: null, loading: false, fetching: true });
+    mockUseBenchmarking.mockReturnValue({
+      ...mockActions,
+      batchId: '',
+      aggregation: null,
+      error: null,
+      loading: false,
+      fetching: true,
+    });
     render(<BenchmarkingPage />);
-    expect(screen.getByRole('button', { name: /Buscando.../i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Buscando.../i })
+    ).toBeInTheDocument();
   });
 
   it('should render the results table when aggregation state is set', () => {
-    const mockAggregation: { batchId: string; rows: BenchmarkAggregationItem[]; totalRows: number; discardedRows: number } = {
+    const mockAggregation: {
+      batchId: string;
+      rows: BenchmarkAggregationItem[];
+      totalRows: number;
+      discardedRows: number;
+    } = {
       batchId: 'test-batch',
       totalRows: 100,
       discardedRows: 5,

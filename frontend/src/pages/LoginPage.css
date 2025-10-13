@@ -3,7 +3,9 @@
   display: grid;
   place-items: center;
   padding: 32px;
-  background: radial-gradient(circle at top, rgba(37, 99, 235, 0.12), transparent 55%), #f7f8fb;
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.12), transparent 55%),
+    #f7f8fb;
 }
 
 .login-card {

@@ -1,4 +1,4 @@
-﻿﻿export interface TokenPairResponse {
+﻿export interface TokenPairResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;

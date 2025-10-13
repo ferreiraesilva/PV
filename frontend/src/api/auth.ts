@@ -18,19 +18,31 @@ const mapTokenPair = (payload: TokenPairResponse): AuthTokens => ({
   expiresIn: payload.expires_in,
 });
 
-export async function login(tenantId: string, payload: LoginPayload): Promise<AuthTokens> {
-  const response = await apiFetch<TokenPairResponse>(`/t/${encodeURIComponent(tenantId)}/login`, {
-    method: 'POST',
-    body: payload,
-  });
+export async function login(
+  tenantId: string,
+  payload: LoginPayload
+): Promise<AuthTokens> {
+  const response = await apiFetch<TokenPairResponse>(
+    `/t/${encodeURIComponent(tenantId)}/login`,
+    {
+      method: 'POST',
+      body: payload,
+    }
+  );
   return mapTokenPair(response);
 }
 
-export async function refresh(tenantId: string, refreshToken: string): Promise<AuthTokens> {
-  const response = await apiFetch<TokenRefreshResponse>(`/t/${encodeURIComponent(tenantId)}/refresh`, {
-    method: 'POST',
-    body: { refreshToken },
-  });
+export async function refresh(
+  tenantId: string,
+  refreshToken: string
+): Promise<AuthTokens> {
+  const response = await apiFetch<TokenRefreshResponse>(
+    `/t/${encodeURIComponent(tenantId)}/refresh`,
+    {
+      method: 'POST',
+      body: { refreshToken },
+    }
+  );
   return {
     accessToken: response.access_token,
     refreshToken,
@@ -38,7 +50,10 @@ export async function refresh(tenantId: string, refreshToken: string): Promise<A
   };
 }
 
-export async function logout(tenantId: string, refreshToken: string): Promise<void> {
+export async function logout(
+  tenantId: string,
+  refreshToken: string
+): Promise<void> {
   await apiFetch(`/t/${encodeURIComponent(tenantId)}/logout`, {
     method: 'POST',
     body: { refreshToken },

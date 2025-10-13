@@ -123,12 +123,12 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
 
   const sortedTenants = useMemo(
     () => [...tenants].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
-    [tenants],
+    [tenants]
   );
 
   const sortedPlans = useMemo(
     () => [...plans].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
-    [plans],
+    [plans]
   );
 
   const handleStartPlanCreation = () => {
@@ -143,7 +143,10 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
     setError(null);
   };
 
-  const handlePlanChange = (field: keyof PlanDraft, value: string | boolean) => {
+  const handlePlanChange = (
+    field: keyof PlanDraft,
+    value: string | boolean
+  ) => {
     if (!planDraft) {
       return;
     }
@@ -160,7 +163,10 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
       throw new Error('Informe o nome do plano.');
     }
     const currency = draft.currency.trim() || 'BRL';
-    const billingCycleMonths = parseRequiredInteger(draft.billingCycleMonths, 'Ciclo de cobrança');
+    const billingCycleMonths = parseRequiredInteger(
+      draft.billingCycleMonths,
+      'Ciclo de cobrança'
+    );
     const maxUsers = parseOptionalInteger(draft.maxUsers, 'Usuários máximos');
     if (maxUsers !== null && maxUsers < 0) {
       throw new Error('Usuários máximos deve ser positivo.');
@@ -198,8 +204,14 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
           ...basePayload,
           isActive: planDraft.isActive,
         };
-        const updated = await updateCommercialPlan(accessToken, planDraft.id, payload);
-        setPlans((current) => current.map((plan) => (plan.id === updated.id ? updated : plan)));
+        const updated = await updateCommercialPlan(
+          accessToken,
+          planDraft.id,
+          payload
+        );
+        setPlans((current) =>
+          current.map((plan) => (plan.id === updated.id ? updated : plan))
+        );
         setPlanDraft(planToDraft(updated));
         setPlanStatus('Plano atualizado com sucesso.');
       }
@@ -219,9 +231,14 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
     setError(null);
     try {
       await assignPlanToTenant(accessToken, assignTenantId, assignPlanId);
-      const tenantName = tenants.find((tenant) => tenant.id === assignTenantId)?.name ?? assignTenantId;
-      const planName = plans.find((plan) => plan.id === assignPlanId)?.name ?? assignPlanId;
-      setAssignStatus(`Plano "${planName}" atribuído ao tenant "${tenantName}".`);
+      const tenantName =
+        tenants.find((tenant) => tenant.id === assignTenantId)?.name ??
+        assignTenantId;
+      const planName =
+        plans.find((plan) => plan.id === assignPlanId)?.name ?? assignPlanId;
+      setAssignStatus(
+        `Plano "${planName}" atribuído ao tenant "${tenantName}".`
+      );
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -231,17 +248,17 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
 
   return (
     <div className="stack">
-      {error && (
-        <div className="alert error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert error">{error}</div>}
 
       <section className="card stack">
         <div className="stack">
           <h2>Planos comerciais</h2>
           <div>
-            <button type="button" className="button ghost" onClick={handleStartPlanCreation}>
+            <button
+              type="button"
+              className="button ghost"
+              onClick={handleStartPlanCreation}
+            >
               Novo plano
             </button>
           </div>
@@ -271,18 +288,24 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
                   <td>
                     {plan.priceCents
                       ? (plan.priceCents / 100).toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: plan.currency || 'BRL',
-                      })
+                          style: 'currency',
+                          currency: plan.currency || 'BRL',
+                        })
                       : '—'}
                   </td>
                   <td>{plan.maxUsers ?? 'Ilimitado'}</td>
                   <td>{plan.billingCycleMonths}</td>
                   <td>
-                    <span className="badge">{plan.isActive ? 'Ativo' : 'Inativo'}</span>
+                    <span className="badge">
+                      {plan.isActive ? 'Ativo' : 'Inativo'}
+                    </span>
                   </td>
                   <td>
-                    <button type="button" className="button ghost" onClick={() => handleEditPlan(plan)}>
+                    <button
+                      type="button"
+                      className="button ghost"
+                      onClick={() => handleEditPlan(plan)}
+                    >
                       Editar
                     </button>
                   </td>
@@ -301,7 +324,9 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
                 <input
                   id="plan-name"
                   value={planDraft.name}
-                  onChange={(event) => handlePlanChange('name', event.target.value)}
+                  onChange={(event) =>
+                    handlePlanChange('name', event.target.value)
+                  }
                 />
               </div>
               <div className="form-field">
@@ -309,7 +334,9 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
                 <input
                   id="plan-currency"
                   value={planDraft.currency}
-                  onChange={(event) => handlePlanChange('currency', event.target.value)}
+                  onChange={(event) =>
+                    handlePlanChange('currency', event.target.value)
+                  }
                   placeholder="Ex: BRL"
                 />
               </div>
@@ -318,7 +345,9 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
                 <input
                   id="plan-price"
                   value={planDraft.price}
-                  onChange={(event) => handlePlanChange('price', event.target.value)}
+                  onChange={(event) =>
+                    handlePlanChange('price', event.target.value)
+                  }
                   placeholder="Ex: 199.90"
                 />
               </div>
@@ -327,7 +356,9 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
                 <input
                   id="plan-max-users"
                   value={planDraft.maxUsers}
-                  onChange={(event) => handlePlanChange('maxUsers', event.target.value)}
+                  onChange={(event) =>
+                    handlePlanChange('maxUsers', event.target.value)
+                  }
                   placeholder="Deixe vazio para ilimitado"
                 />
               </div>
@@ -336,7 +367,9 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
                 <input
                   id="plan-cycle"
                   value={planDraft.billingCycleMonths}
-                  onChange={(event) => handlePlanChange('billingCycleMonths', event.target.value)}
+                  onChange={(event) =>
+                    handlePlanChange('billingCycleMonths', event.target.value)
+                  }
                   placeholder="Ex: 12"
                 />
               </div>
@@ -348,7 +381,9 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
                 id="plan-description"
                 rows={3}
                 value={planDraft.description}
-                onChange={(event) => handlePlanChange('description', event.target.value)}
+                onChange={(event) =>
+                  handlePlanChange('description', event.target.value)
+                }
               />
             </div>
 
@@ -357,7 +392,9 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
                 <input
                   type="checkbox"
                   checked={planDraft.isActive}
-                  onChange={(event) => handlePlanChange('isActive', event.target.checked)}
+                  onChange={(event) =>
+                    handlePlanChange('isActive', event.target.checked)
+                  }
                 />
                 &nbsp;Plano ativo
               </label>
@@ -372,7 +409,11 @@ export function SuperuserPanel({ accessToken, tenants }: SuperuserPanelProps) {
               >
                 {planSaving ? 'Salvando...' : 'Salvar plano'}
               </button>
-              <button type="button" className="button ghost" onClick={handleCancelPlan}>
+              <button
+                type="button"
+                className="button ghost"
+                onClick={handleCancelPlan}
+              >
                 Cancelar
               </button>
             </div>

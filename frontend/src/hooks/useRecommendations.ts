@@ -1,7 +1,13 @@
 import { FormEvent, useState, useCallback } from 'react';
 
-import { createRecommendationRun, getRecommendationRun } from '../api/recommendations';
-import type { CalculationJobStatus, RecommendationRunResponse } from '../api/types';
+import {
+  createRecommendationRun,
+  getRecommendationRun,
+} from '../api/recommendations';
+import type {
+  CalculationJobStatus,
+  RecommendationRunResponse,
+} from '../api/types';
 import { useAuth } from './useAuth';
 
 export const useRecommendations = () => {
@@ -15,11 +21,13 @@ export const useRecommendations = () => {
         target: 'inadimplencia',
       },
       null,
-      2,
-    ),
+      2
+    )
   );
   const [jobStatus, setJobStatus] = useState<CalculationJobStatus | null>(null);
-  const [runDetail, setRunDetail] = useState<RecommendationRunResponse | null>(null);
+  const [runDetail, setRunDetail] = useState<RecommendationRunResponse | null>(
+    null
+  );
   const [runId, setRunId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -54,14 +62,16 @@ export const useRecommendations = () => {
         setRunId(response.jobId);
         setRunDetail(null);
       } catch (err) {
-        const message = (err as Error).message ?? 'Falha ao iniciar recomendação (endpoint pode não estar disponível).';
+        const message =
+          (err as Error).message ??
+          'Falha ao iniciar recomendação (endpoint pode não estar disponível).';
         setError(message);
         setJobStatus(null);
       } finally {
         setLoading(false);
       }
     },
-    [accessToken, parameters, runType, simulationId, snapshotId, tenantId],
+    [accessToken, parameters, runType, simulationId, snapshotId, tenantId]
   );
 
   const handleFetchRun = useCallback(async () => {
@@ -79,7 +89,9 @@ export const useRecommendations = () => {
       const response = await getRecommendationRun(tenantId, runId, accessToken);
       setRunDetail(response);
     } catch (err) {
-      const message = (err as Error).message ?? 'Não foi possível buscar o run (endpoint pode não existir).';
+      const message =
+        (err as Error).message ??
+        'Não foi possível buscar o run (endpoint pode não existir).';
       setError(message);
     } finally {
       setFetching(false);
@@ -87,13 +99,18 @@ export const useRecommendations = () => {
   }, [accessToken, runId, tenantId]);
 
   return {
-    runType, setRunType,
-    snapshotId, setSnapshotId,
-    simulationId, setSimulationId,
-    parameters, setParameters,
+    runType,
+    setRunType,
+    snapshotId,
+    setSnapshotId,
+    simulationId,
+    setSimulationId,
+    parameters,
+    setParameters,
     jobStatus,
     runDetail,
-    runId, setRunId,
+    runId,
+    setRunId,
     error,
     loading,
     fetching,

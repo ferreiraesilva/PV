@@ -37,24 +37,34 @@ describe('AuditPage', () => {
     expect(screen.getByLabelText('Até')).toBeInTheDocument();
     expect(screen.getByLabelText('Request ID')).toBeInTheDocument();
     expect(screen.getByLabelText('Usuário')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Buscar logs/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Buscar logs/i })
+    ).toBeInTheDocument();
   });
 
   it('should fetch logs on initial render', () => {
     render(<AuditPage />);
     expect(mockListAuditLogs).toHaveBeenCalledTimes(1);
-    expect(mockListAuditLogs).toHaveBeenCalledWith(expect.any(String), expect.any(String), expect.objectContaining({
-      skip: 0,
-      limit: 20,
-    }));
+    expect(mockListAuditLogs).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({
+        skip: 0,
+        limit: 20,
+      })
+    );
   });
 
   it('should call listAuditLogs with correct filters on form submission', async () => {
     render(<AuditPage />);
 
     // Fill out the form
-    fireEvent.change(screen.getByLabelText('De'), { target: { value: '2024-01-01T10:00' } });
-    fireEvent.change(screen.getByLabelText('Request ID'), { target: { value: 'req-123' } });
+    fireEvent.change(screen.getByLabelText('De'), {
+      target: { value: '2024-01-01T10:00' },
+    });
+    fireEvent.change(screen.getByLabelText('Request ID'), {
+      target: { value: 'req-123' },
+    });
 
     // Submit the form
     const submitButton = screen.getByRole('button', { name: /Buscar logs/i });
@@ -75,13 +85,14 @@ describe('AuditPage', () => {
         userId: undefined,
         skip: 0,
         limit: 20,
-      }),
+      })
     );
   });
 
   it('should clear filters when "Limpar filtros" is clicked', () => {
     render(<AuditPage />);
-    const requestIdInput = screen.getByLabelText<HTMLInputElement>('Request ID');
+    const requestIdInput =
+      screen.getByLabelText<HTMLInputElement>('Request ID');
 
     fireEvent.change(requestIdInput, { target: { value: 'test-id' } });
     expect(requestIdInput.value).toBe('test-id');
@@ -93,13 +104,17 @@ describe('AuditPage', () => {
   });
 
   it('should display an error message when API call fails', async () => {
-    mockListAuditLogs.mockRejectedValue(new Error('Falha na API de auditoria.'));
+    mockListAuditLogs.mockRejectedValue(
+      new Error('Falha na API de auditoria.')
+    );
     render(<AuditPage />);
 
     const submitButton = screen.getByRole('button', { name: /Buscar logs/i });
     fireEvent.click(submitButton);
 
-    expect(await screen.findByText('Falha na API de auditoria.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Falha na API de auditoria.')
+    ).toBeInTheDocument();
   });
 
   it('should display "Consultando..." on the submit button when loading', () => {
@@ -109,7 +124,9 @@ describe('AuditPage', () => {
     const submitButton = screen.getByRole('button', { name: /Buscar logs/i });
     fireEvent.click(submitButton);
 
-    expect(screen.getByRole('button', { name: /Consultando.../i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Consultando.../i })
+    ).toBeInTheDocument();
   });
 
   it('should render the results table when logs are returned', async () => {
@@ -140,7 +157,9 @@ describe('AuditPage', () => {
     render(<AuditPage />);
 
     // Wait for initial fetch
-    await waitFor(() => expect(screen.getByText('Página 1 de 3')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Página 1 de 3')).toBeInTheDocument()
+    );
 
     const nextButton = screen.getByRole('button', { name: /Próxima/i });
     const prevButton = screen.getByRole('button', { name: /Anterior/i });
@@ -152,7 +171,11 @@ describe('AuditPage', () => {
     fireEvent.click(nextButton);
 
     await waitFor(() => {
-      expect(mockListAuditLogs).toHaveBeenCalledWith(expect.any(String), expect.any(String), expect.objectContaining({ skip: 20, limit: 20 }));
+      expect(mockListAuditLogs).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        expect.objectContaining({ skip: 20, limit: 20 })
+      );
     });
   });
 });

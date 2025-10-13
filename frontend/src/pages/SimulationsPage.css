@@ -56,7 +56,8 @@
   margin: 6px 0 0;
   font-size: 16px;
   color: #0f172a;
-}\r\n\r\n.form-actions {
+}
+\r\n\r\n.form-actions {
   display: flex;
   justify-content: flex-end;
 }

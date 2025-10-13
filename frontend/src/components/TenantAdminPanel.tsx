@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import type { FinancialSettings, PaymentPlanTemplate, TenantSummary } from '../api/types';
+import type {
+  FinancialSettings,
+  PaymentPlanTemplate,
+  TenantSummary,
+} from '../api/types';
 import {
   createPaymentPlanTemplate,
   getFinancialSettings,
@@ -57,7 +61,9 @@ const asDraft = (template: PaymentPlanTemplate): TemplateDraft => ({
   principal: template.principal.toString(),
   discountRate: template.discountRate.toString(),
   isActive: template.isActive,
-  metadataText: template.metadata ? JSON.stringify(template.metadata, null, 2) : '',
+  metadataText: template.metadata
+    ? JSON.stringify(template.metadata, null, 2)
+    : '',
   installments: template.installments.map((item) => ({
     period: item.period.toString(),
     amount: item.amount.toString(),
@@ -101,7 +107,7 @@ export function TenantAdminPanel({
   onSelectTenant,
   canSelectTenant,
 }: TenantAdminPanelProps) {
-  const [settings, setSettings] = useState<FinancialSettings | null>(null);
+  const [, setSettings] = useState<FinancialSettings | null>(null);
   const [settingsForm, setSettingsForm] = useState({
     periodsPerYear: '',
     defaultMultiplier: '',
@@ -113,14 +119,16 @@ export function TenantAdminPanel({
 
   const [templates, setTemplates] = useState<PaymentPlanTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
-  const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null);
+  const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(
+    null
+  );
   const [templateSaving, setTemplateSaving] = useState(false);
   const [templateStatus, setTemplateStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const activeTenant = useMemo(
     () => tenants.find((tenant) => tenant.id === selectedTenantId) ?? null,
-    [tenants, selectedTenantId],
+    [tenants, selectedTenantId]
   );
 
   useEffect(() => {
@@ -161,8 +169,10 @@ export function TenantAdminPanel({
         setSettings(fetchedSettings);
         setSettingsForm({
           periodsPerYear: fetchedSettings.periodsPerYear?.toString() ?? '',
-          defaultMultiplier: fetchedSettings.defaultMultiplier?.toString() ?? '',
-          cancellationMultiplier: fetchedSettings.cancellationMultiplier?.toString() ?? '',
+          defaultMultiplier:
+            fetchedSettings.defaultMultiplier?.toString() ?? '',
+          cancellationMultiplier:
+            fetchedSettings.cancellationMultiplier?.toString() ?? '',
         });
         setTemplates(fetchedTemplates);
       } catch (err) {
@@ -182,7 +192,10 @@ export function TenantAdminPanel({
     };
   }, [accessToken, selectedTenantId]);
 
-  const handleSettingsChange = (field: keyof typeof settingsForm, value: string) => {
+  const handleSettingsChange = (
+    field: keyof typeof settingsForm,
+    value: string
+  ) => {
     setSettingsForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -197,14 +210,21 @@ export function TenantAdminPanel({
       const payload: FinancialSettingsUpdatePayload = {
         periodsPerYear: normalizeNumber(settingsForm.periodsPerYear),
         defaultMultiplier: normalizeNumber(settingsForm.defaultMultiplier),
-        cancellationMultiplier: normalizeNumber(settingsForm.cancellationMultiplier),
+        cancellationMultiplier: normalizeNumber(
+          settingsForm.cancellationMultiplier
+        ),
       };
-      const updated = await updateFinancialSettings(accessToken, selectedTenantId, payload);
+      const updated = await updateFinancialSettings(
+        accessToken,
+        selectedTenantId,
+        payload
+      );
       setSettings(updated);
       setSettingsForm({
         periodsPerYear: updated.periodsPerYear?.toString() ?? '',
         defaultMultiplier: updated.defaultMultiplier?.toString() ?? '',
-        cancellationMultiplier: updated.cancellationMultiplier?.toString() ?? '',
+        cancellationMultiplier:
+          updated.cancellationMultiplier?.toString() ?? '',
       });
       setSettingsStatus('Configurações financeiras atualizadas com sucesso.');
     } catch (err) {
@@ -231,7 +251,10 @@ export function TenantAdminPanel({
     setTemplateStatus(null);
   };
 
-  const handleDraftChange = (field: keyof TemplateDraft, value: string | boolean) => {
+  const handleDraftChange = (
+    field: keyof TemplateDraft,
+    value: string | boolean
+  ) => {
     if (!templateDraft) {
       return;
     }
@@ -241,7 +264,11 @@ export function TenantAdminPanel({
     });
   };
 
-  const handleInstallmentChange = (index: number, field: keyof TemplateDraftInstallment, value: string) => {
+  const handleInstallmentChange = (
+    index: number,
+    field: keyof TemplateDraftInstallment,
+    value: string
+  ) => {
     if (!templateDraft) {
       return;
     }
@@ -271,11 +298,15 @@ export function TenantAdminPanel({
     }
     setTemplateDraft({
       ...templateDraft,
-      installments: templateDraft.installments.filter((_, idx) => idx !== index),
+      installments: templateDraft.installments.filter(
+        (_, idx) => idx !== index
+      ),
     });
   };
 
-  const buildInstallmentsPayload = (draft: TemplateDraft): PaymentPlanInstallmentInput[] => {
+  const buildInstallmentsPayload = (
+    draft: TemplateDraft
+  ): PaymentPlanInstallmentInput[] => {
     if (draft.installments.length === 0) {
       throw new Error('Inclua ao menos uma parcela para o template.');
     }
@@ -303,7 +334,10 @@ export function TenantAdminPanel({
     try {
       const installments = buildInstallmentsPayload(templateDraft);
       const metadata = parseMetadata(templateDraft.metadataText);
-      const basePayload: Omit<PaymentPlanTemplateCreatePayload, 'installments'> = {
+      const basePayload: Omit<
+        PaymentPlanTemplateCreatePayload,
+        'installments'
+      > = {
         productCode: templateDraft.productCode.trim(),
         principal: normalizeNumber(templateDraft.principal, false),
         discountRate: normalizeNumber(templateDraft.discountRate, false),
@@ -314,10 +348,14 @@ export function TenantAdminPanel({
       };
 
       if (!templateDraft.id) {
-        const created = await createPaymentPlanTemplate(accessToken, selectedTenantId, {
-          ...basePayload,
-          installments,
-        });
+        const created = await createPaymentPlanTemplate(
+          accessToken,
+          selectedTenantId,
+          {
+            ...basePayload,
+            installments,
+          }
+        );
         setTemplates((prev) => [...prev, created]);
         setTemplateStatus('Template de plano criado com sucesso.');
         setTemplateDraft(asDraft(created));
@@ -335,9 +373,11 @@ export function TenantAdminPanel({
           accessToken,
           selectedTenantId,
           templateDraft.id,
-          payload,
+          payload
         );
-        setTemplates((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        setTemplates((prev) =>
+          prev.map((item) => (item.id === updated.id ? updated : item))
+        );
         setTemplateStatus('Template de plano atualizado com sucesso.');
         setTemplateDraft(asDraft(updated));
       }
@@ -373,11 +413,7 @@ export function TenantAdminPanel({
         </div>
       )}
 
-      {error && (
-        <div className="alert error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert error">{error}</div>}
 
       {!selectedTenantId ? (
         <div className="card">
@@ -404,25 +440,44 @@ export function TenantAdminPanel({
                     <input
                       id="periods-per-year"
                       value={settingsForm.periodsPerYear}
-                      onChange={(event) => handleSettingsChange('periodsPerYear', event.target.value)}
+                      onChange={(event) =>
+                        handleSettingsChange(
+                          'periodsPerYear',
+                          event.target.value
+                        )
+                      }
                       placeholder="Ex: 12"
                     />
                   </div>
                   <div className="form-field">
-                    <label htmlFor="default-multiplier">Multiplicador de inadimplência</label>
+                    <label htmlFor="default-multiplier">
+                      Multiplicador de inadimplência
+                    </label>
                     <input
                       id="default-multiplier"
                       value={settingsForm.defaultMultiplier}
-                      onChange={(event) => handleSettingsChange('defaultMultiplier', event.target.value)}
+                      onChange={(event) =>
+                        handleSettingsChange(
+                          'defaultMultiplier',
+                          event.target.value
+                        )
+                      }
                       placeholder="Ex: 1.2"
                     />
                   </div>
                   <div className="form-field">
-                    <label htmlFor="cancellation-multiplier">Multiplicador de cancelamento</label>
+                    <label htmlFor="cancellation-multiplier">
+                      Multiplicador de cancelamento
+                    </label>
                     <input
                       id="cancellation-multiplier"
                       value={settingsForm.cancellationMultiplier}
-                      onChange={(event) => handleSettingsChange('cancellationMultiplier', event.target.value)}
+                      onChange={(event) =>
+                        handleSettingsChange(
+                          'cancellationMultiplier',
+                          event.target.value
+                        )
+                      }
                       placeholder="Ex: 1.0"
                     />
                   </div>
@@ -447,7 +502,11 @@ export function TenantAdminPanel({
               <h2>Templates de planos de pagamento</h2>
               {templateStatus && <small>{templateStatus}</small>}
               <div>
-                <button type="button" className="button ghost" onClick={handleStartCreation}>
+                <button
+                  type="button"
+                  className="button ghost"
+                  onClick={handleStartCreation}
+                >
                   Novo template
                 </button>
               </div>
@@ -475,11 +534,18 @@ export function TenantAdminPanel({
                     <tr key={template.id}>
                       <td>{template.productCode}</td>
                       <td>{template.name ?? '-'}</td>
-                      <td>{template.principal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                      <td>
+                        {template.principal.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                      </td>
                       <td>{template.discountRate.toLocaleString('pt-BR')}%</td>
                       <td>{template.installments.length}</td>
                       <td>
-                        <span className="badge">{template.isActive ? 'Ativo' : 'Inativo'}</span>
+                        <span className="badge">
+                          {template.isActive ? 'Ativo' : 'Inativo'}
+                        </span>
                       </td>
                       <td>
                         <button
@@ -498,14 +564,20 @@ export function TenantAdminPanel({
 
             {templateDraft && (
               <div className="card stack">
-                <h3>{templateDraft.id ? 'Editar template' : 'Novo template'}</h3>
+                <h3>
+                  {templateDraft.id ? 'Editar template' : 'Novo template'}
+                </h3>
                 <div className="grid two">
                   <div className="form-field">
-                    <label htmlFor="template-product-code">Código do produto</label>
+                    <label htmlFor="template-product-code">
+                      Código do produto
+                    </label>
                     <input
                       id="template-product-code"
                       value={templateDraft.productCode}
-                      onChange={(event) => handleDraftChange('productCode', event.target.value)}
+                      onChange={(event) =>
+                        handleDraftChange('productCode', event.target.value)
+                      }
                       disabled={!!templateDraft.id}
                     />
                   </div>
@@ -514,24 +586,34 @@ export function TenantAdminPanel({
                     <input
                       id="template-name"
                       value={templateDraft.name}
-                      onChange={(event) => handleDraftChange('name', event.target.value)}
+                      onChange={(event) =>
+                        handleDraftChange('name', event.target.value)
+                      }
                     />
                   </div>
                   <div className="form-field">
-                    <label htmlFor="template-principal">Principal (valor)</label>
+                    <label htmlFor="template-principal">
+                      Principal (valor)
+                    </label>
                     <input
                       id="template-principal"
                       value={templateDraft.principal}
-                      onChange={(event) => handleDraftChange('principal', event.target.value)}
+                      onChange={(event) =>
+                        handleDraftChange('principal', event.target.value)
+                      }
                       placeholder="Ex: 100000"
                     />
                   </div>
                   <div className="form-field">
-                    <label htmlFor="template-discount-rate">Taxa de desconto (%)</label>
+                    <label htmlFor="template-discount-rate">
+                      Taxa de desconto (%)
+                    </label>
                     <input
                       id="template-discount-rate"
                       value={templateDraft.discountRate}
-                      onChange={(event) => handleDraftChange('discountRate', event.target.value)}
+                      onChange={(event) =>
+                        handleDraftChange('discountRate', event.target.value)
+                      }
                       placeholder="Ex: 1.5"
                     />
                   </div>
@@ -543,7 +625,9 @@ export function TenantAdminPanel({
                     id="template-description"
                     rows={3}
                     value={templateDraft.description}
-                    onChange={(event) => handleDraftChange('description', event.target.value)}
+                    onChange={(event) =>
+                      handleDraftChange('description', event.target.value)
+                    }
                   />
                 </div>
 
@@ -553,7 +637,9 @@ export function TenantAdminPanel({
                     id="template-metadata"
                     rows={4}
                     value={templateDraft.metadataText}
-                    onChange={(event) => handleDraftChange('metadataText', event.target.value)}
+                    onChange={(event) =>
+                      handleDraftChange('metadataText', event.target.value)
+                    }
                     placeholder='Ex: { "segment": "varejo" }'
                   />
                 </div>
@@ -563,7 +649,9 @@ export function TenantAdminPanel({
                     <input
                       type="checkbox"
                       checked={templateDraft.isActive}
-                      onChange={(event) => handleDraftChange('isActive', event.target.checked)}
+                      onChange={(event) =>
+                        handleDraftChange('isActive', event.target.checked)
+                      }
                     />
                     &nbsp;Template ativo
                   </label>
@@ -572,25 +660,40 @@ export function TenantAdminPanel({
                 <div className="stack">
                   <h4>Parcelas</h4>
                   {templateDraft.installments.map((installment, index) => (
-                    <div className="grid two" key={`${index}-${installment.period}-${installment.amount}`}>
+                    <div
+                      className="grid two"
+                      key={`${index}-${installment.period}-${installment.amount}`}
+                    >
                       <div className="form-field">
-                        <label htmlFor={`installment-period-${index}`}>Período (mês)</label>
+                        <label htmlFor={`installment-period-${index}`}>
+                          Período (mês)
+                        </label>
                         <input
                           id={`installment-period-${index}`}
                           value={installment.period}
                           onChange={(event) =>
-                            handleInstallmentChange(index, 'period', event.target.value)
+                            handleInstallmentChange(
+                              index,
+                              'period',
+                              event.target.value
+                            )
                           }
                           placeholder="Ex: 1"
                         />
                       </div>
                       <div className="form-field">
-                        <label htmlFor={`installment-amount-${index}`}>Valor</label>
+                        <label htmlFor={`installment-amount-${index}`}>
+                          Valor
+                        </label>
                         <input
                           id={`installment-amount-${index}`}
                           value={installment.amount}
                           onChange={(event) =>
-                            handleInstallmentChange(index, 'amount', event.target.value)
+                            handleInstallmentChange(
+                              index,
+                              'amount',
+                              event.target.value
+                            )
                           }
                           placeholder="Ex: 1500"
                         />
@@ -607,7 +710,11 @@ export function TenantAdminPanel({
                       </div>
                     </div>
                   ))}
-                  <button type="button" className="button ghost" onClick={handleAddInstallment}>
+                  <button
+                    type="button"
+                    className="button ghost"
+                    onClick={handleAddInstallment}
+                  >
                     Adicionar parcela
                   </button>
                 </div>
@@ -621,7 +728,11 @@ export function TenantAdminPanel({
                   >
                     {templateSaving ? 'Salvando...' : 'Salvar template'}
                   </button>
-                  <button type="button" className="button ghost" onClick={handleCancelTemplate}>
+                  <button
+                    type="button"
+                    className="button ghost"
+                    onClick={handleCancelTemplate}
+                  >
                     Cancelar
                   </button>
                 </div>

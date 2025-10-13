@@ -67,7 +67,9 @@ describe('SimulationsPage', () => {
     render(<SimulationsPage />);
     expect(screen.getByText('Plano 1')).toBeInTheDocument();
     expect(screen.getByLabelText('Nome do plano')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Calcular comparativo/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Calcular comparativo/i })
+    ).toBeInTheDocument();
   });
 
   it('should call addPlan when "Adicionar plano" is clicked', () => {
@@ -81,12 +83,18 @@ describe('SimulationsPage', () => {
     render(<SimulationsPage />);
     const labelInput = screen.getByLabelText('Nome do plano');
     fireEvent.change(labelInput, { target: { value: 'New Plan Name' } });
-    expect(mockActions.updatePlanField).toHaveBeenCalledWith(0, 'label', 'New Plan Name');
+    expect(mockActions.updatePlanField).toHaveBeenCalledWith(
+      0,
+      'label',
+      'New Plan Name'
+    );
   });
 
   it('should call handleSubmit when the form is submitted', () => {
     render(<SimulationsPage />);
-    const submitButton = screen.getByRole('button', { name: /Calcular comparativo/i });
+    const submitButton = screen.getByRole('button', {
+      name: /Calcular comparativo/i,
+    });
     fireEvent.click(submitButton);
     expect(mockActions.handleSubmit).toHaveBeenCalledTimes(1);
   });
@@ -109,7 +117,9 @@ describe('SimulationsPage', () => {
     });
 
     render(<SimulationsPage />);
-    const removeButtons = screen.getAllByRole('button', { name: /Remover plano/i });
+    const removeButtons = screen.getAllByRole('button', {
+      name: /Remover plano/i,
+    });
     expect(removeButtons[0]).not.toBeDisabled();
     expect(removeButtons[1]).not.toBeDisabled();
   });
@@ -125,7 +135,9 @@ describe('SimulationsPage', () => {
     });
 
     render(<SimulationsPage />);
-    expect(screen.getByText('Ocorreu um erro na simulação.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Ocorreu um erro na simulação.')
+    ).toBeInTheDocument();
   });
 
   it('should display "Calculando..." on the submit button when submitting', () => {
@@ -139,6 +151,8 @@ describe('SimulationsPage', () => {
     });
 
     render(<SimulationsPage />);
-    expect(screen.getByRole('button', { name: /Calculando.../i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Calculando.../i })
+    ).toBeInTheDocument();
   });
 });

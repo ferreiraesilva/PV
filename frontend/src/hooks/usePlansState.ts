@@ -31,33 +31,72 @@ const addMonths = (date: Date, months: number): Date => {
 export const usePlansState = (initialPlans: PlanFormState[]) => {
   const [plans, setPlans] = useState<PlanFormState[]>(initialPlans);
 
-  const updatePlanField = useCallback((planIndex: number, field: keyof Omit<PlanFormState, 'installments' | 'key'>, value: string | number) => {
-    setPlans(produce(draft => {
-      (draft[planIndex] as any)[field] = value;
-    }));
-  }, []);
+  const updatePlanField = useCallback(
+    (
+      planIndex: number,
+      field: keyof Omit<PlanFormState, 'installments' | 'key'>,
+      value: string | number
+    ) => {
+      setPlans(
+        produce((draft) => {
+          (draft[planIndex] as any)[field] = value;
+        })
+      );
+    },
+    []
+  );
 
-  const updateInstallment = useCallback((planIndex: number, installmentIndex: number, field: keyof InstallmentRow, value: string | number) => {
-    setPlans(produce(draft => {
-      (draft[planIndex].installments[installmentIndex] as any)[field] = value;
-    }));
-  }, []);
+  const updateInstallment = useCallback(
+    (
+      planIndex: number,
+      installmentIndex: number,
+      field: keyof InstallmentRow,
+      value: string | number
+    ) => {
+      setPlans(
+        produce((draft) => {
+          (draft[planIndex].installments[installmentIndex] as any)[field] =
+            value;
+        })
+      );
+    },
+    []
+  );
 
   const addInstallment = useCallback((planIndex: number) => {
-    setPlans(produce(draft => {
-      const installments = draft[planIndex].installments;
-      const lastInstallment = installments[installments.length - 1];
-      const lastDate = lastInstallment ? new Date(lastInstallment.due_date) : new Date();
-      const newDate = addMonths(lastDate, 1);
-      installments.push({ due_date: newDate.toISOString().slice(0, 10), amount: lastInstallment?.amount ?? 1000 });
-    }));
+    setPlans(
+      produce((draft) => {
+        const installments = draft[planIndex].installments;
+        const lastInstallment = installments[installments.length - 1];
+        const lastDate = lastInstallment
+          ? new Date(lastInstallment.due_date)
+          : new Date();
+        const newDate = addMonths(lastDate, 1);
+        installments.push({
+          due_date: newDate.toISOString().slice(0, 10),
+          amount: lastInstallment?.amount ?? 1000,
+        });
+      })
+    );
   }, []);
 
-  const removeInstallment = useCallback((planIndex: number, installmentIndex: number) => {
-    setPlans(produce(draft => {
-      draft[planIndex].installments.splice(installmentIndex, 1);
-    }));
-  }, []);
+  const removeInstallment = useCallback(
+    (planIndex: number, installmentIndex: number) => {
+      setPlans(
+        produce((draft) => {
+          draft[planIndex].installments.splice(installmentIndex, 1);
+        })
+      );
+    },
+    []
+  );
 
-  return { plans, setPlans, updatePlanField, updateInstallment, addInstallment, removeInstallment };
+  return {
+    plans,
+    setPlans,
+    updatePlanField,
+    updateInstallment,
+    addInstallment,
+    removeInstallment,
+  };
 };

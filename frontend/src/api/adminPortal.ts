@@ -17,7 +17,9 @@ type RawFinancialSettings = {
   cancellation_multiplier: number | null;
 };
 
-const mapFinancialSettings = (payload: RawFinancialSettings): FinancialSettings => ({
+const mapFinancialSettings = (
+  payload: RawFinancialSettings
+): FinancialSettings => ({
   tenantId: payload.tenant_id,
   periodsPerYear: payload.periods_per_year,
   defaultMultiplier: payload.default_multiplier,
@@ -60,7 +62,9 @@ interface RawPaymentPlanTemplate extends PaymentPlanTemplate {
   installments: Array<PaymentPlanTemplate['installments'][number]>;
 }
 
-const mapPaymentPlanTemplate = (payload: RawPaymentPlanTemplate): PaymentPlanTemplate => ({
+const mapPaymentPlanTemplate = (
+  payload: RawPaymentPlanTemplate
+): PaymentPlanTemplate => ({
   ...payload,
   metadata: payload.metadata ?? null,
   description: payload.description ?? null,
@@ -72,14 +76,24 @@ const mapPaymentPlanTemplate = (payload: RawPaymentPlanTemplate): PaymentPlanTem
   })),
 });
 
-export async function listTenants(token: string, includeInactive = false): Promise<TenantSummary[]> {
+export async function listTenants(
+  token: string,
+  includeInactive = false
+): Promise<TenantSummary[]> {
   const query = includeInactive ? '?include_inactive=true' : '';
-  return apiFetch<TenantSummary[]>(`${TENANT_ADMIN_BASE}/tenants${query}`, { token });
+  return apiFetch<TenantSummary[]>(`${TENANT_ADMIN_BASE}/tenants${query}`, {
+    token,
+  });
 }
 
-export async function listCommercialPlans(token: string, includeInactive = false): Promise<CommercialPlan[]> {
+export async function listCommercialPlans(
+  token: string,
+  includeInactive = false
+): Promise<CommercialPlan[]> {
   const query = includeInactive ? '?include_inactive=true' : '';
-  return apiFetch<CommercialPlan[]>(`${SUPERUSER_BASE}/plans${query}`, { token });
+  return apiFetch<CommercialPlan[]>(`${SUPERUSER_BASE}/plans${query}`, {
+    token,
+  });
 }
 
 export interface CommercialPlanCreatePayload {
@@ -91,14 +105,15 @@ export interface CommercialPlanCreatePayload {
   billingCycleMonths?: number;
 }
 
-export interface CommercialPlanUpdatePayload extends CommercialPlanCreatePayload {
+export interface CommercialPlanUpdatePayload
+  extends CommercialPlanCreatePayload {
   isActive?: boolean;
 }
 
 export async function updateCommercialPlan(
   token: string,
   planId: string,
-  payload: CommercialPlanUpdatePayload,
+  payload: CommercialPlanUpdatePayload
 ): Promise<CommercialPlan> {
   return apiFetch<CommercialPlan>(`${SUPERUSER_BASE}/plans/${planId}`, {
     token,
@@ -109,7 +124,7 @@ export async function updateCommercialPlan(
 
 export async function createCommercialPlan(
   token: string,
-  payload: CommercialPlanCreatePayload,
+  payload: CommercialPlanCreatePayload
 ): Promise<CommercialPlan> {
   return apiFetch<CommercialPlan>(`${SUPERUSER_BASE}/plans`, {
     token,
@@ -121,26 +136,35 @@ export async function createCommercialPlan(
 export async function assignPlanToTenant(
   token: string,
   tenantId: string,
-  planId: string,
+  planId: string
 ): Promise<TenantPlanSubscription> {
-  return apiFetch<TenantPlanSubscription>(`${SUPERUSER_BASE}/tenants/${tenantId}/assign-plan`, {
-    token,
-    method: 'POST',
-    body: { planId },
-  });
+  return apiFetch<TenantPlanSubscription>(
+    `${SUPERUSER_BASE}/tenants/${tenantId}/assign-plan`,
+    {
+      token,
+      method: 'POST',
+      body: { planId },
+    }
+  );
 }
 
-export async function getFinancialSettings(token: string, tenantId: string): Promise<FinancialSettings> {
-  const response = await apiFetch<RawFinancialSettings>(`${TENANT_ADMIN_BASE}/${tenantId}/financial-settings`, {
-    token,
-  });
+export async function getFinancialSettings(
+  token: string,
+  tenantId: string
+): Promise<FinancialSettings> {
+  const response = await apiFetch<RawFinancialSettings>(
+    `${TENANT_ADMIN_BASE}/${tenantId}/financial-settings`,
+    {
+      token,
+    }
+  );
   return mapFinancialSettings(response);
 }
 
 export async function updateFinancialSettings(
   token: string,
   tenantId: string,
-  payload: FinancialSettingsUpdatePayload,
+  payload: FinancialSettingsUpdatePayload
 ): Promise<FinancialSettings> {
   const body: Record<string, number | null> = {};
   if (Object.prototype.hasOwnProperty.call(payload, 'periodsPerYear')) {
@@ -152,18 +176,24 @@ export async function updateFinancialSettings(
   if (Object.prototype.hasOwnProperty.call(payload, 'cancellationMultiplier')) {
     body.cancellation_multiplier = payload.cancellationMultiplier ?? null;
   }
-  const response = await apiFetch<RawFinancialSettings>(`${TENANT_ADMIN_BASE}/${tenantId}/financial-settings`, {
-    token,
-    method: 'PUT',
-    body,
-  });
+  const response = await apiFetch<RawFinancialSettings>(
+    `${TENANT_ADMIN_BASE}/${tenantId}/financial-settings`,
+    {
+      token,
+      method: 'PUT',
+      body,
+    }
+  );
   return mapFinancialSettings(response);
 }
 
-export async function listPaymentPlanTemplates(token: string, tenantId: string): Promise<PaymentPlanTemplate[]> {
+export async function listPaymentPlanTemplates(
+  token: string,
+  tenantId: string
+): Promise<PaymentPlanTemplate[]> {
   const response = await apiFetch<RawPaymentPlanTemplate[]>(
     `${TENANT_ADMIN_BASE}/${tenantId}/payment-plans`,
-    { token },
+    { token }
   );
   return response.map(mapPaymentPlanTemplate);
 }
@@ -171,13 +201,16 @@ export async function listPaymentPlanTemplates(token: string, tenantId: string):
 export async function createPaymentPlanTemplate(
   token: string,
   tenantId: string,
-  payload: PaymentPlanTemplateCreatePayload,
+  payload: PaymentPlanTemplateCreatePayload
 ): Promise<PaymentPlanTemplate> {
-  const response = await apiFetch<RawPaymentPlanTemplate>(`${TENANT_ADMIN_BASE}/${tenantId}/payment-plans`, {
-    token,
-    method: 'POST',
-    body: payload,
-  });
+  const response = await apiFetch<RawPaymentPlanTemplate>(
+    `${TENANT_ADMIN_BASE}/${tenantId}/payment-plans`,
+    {
+      token,
+      method: 'POST',
+      body: payload,
+    }
+  );
   return mapPaymentPlanTemplate(response);
 }
 
@@ -185,7 +218,7 @@ export async function updatePaymentPlanTemplate(
   token: string,
   tenantId: string,
   templateId: string,
-  payload: PaymentPlanTemplateUpdatePayload,
+  payload: PaymentPlanTemplateUpdatePayload
 ): Promise<PaymentPlanTemplate> {
   const response = await apiFetch<RawPaymentPlanTemplate>(
     `${TENANT_ADMIN_BASE}/${tenantId}/payment-plans/${templateId}`,
@@ -193,7 +226,7 @@ export async function updatePaymentPlanTemplate(
       token,
       method: 'PATCH',
       body: payload,
-    },
+    }
   );
   return mapPaymentPlanTemplate(response);
 }

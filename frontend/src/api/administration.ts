@@ -46,17 +46,27 @@ export interface CompanyUpdatePayload {
   isActive?: boolean;
 }
 
-export async function fetchTenants(token: string, includeInactive = false): Promise<TenantSummary[]> {
+export async function fetchTenants(
+  token: string,
+  includeInactive = false
+): Promise<TenantSummary[]> {
   const query = includeInactive ? '?include_inactive=true' : '';
   return apiFetch<TenantSummary[]>(`/v1/admin/tenants${query}`, { token });
 }
 
-export async function fetchPlans(token: string, includeInactive = false): Promise<CommercialPlan[]> {
+export async function fetchPlans(
+  token: string,
+  includeInactive = false
+): Promise<CommercialPlan[]> {
   const query = includeInactive ? '?include_inactive=true' : '';
   return apiFetch<CommercialPlan[]>(`/v1/admin/plans${query}`, { token });
 }
 
-export async function updatePlan(token: string, planId: string, payload: PlanUpdatePayload): Promise<CommercialPlan> {
+export async function updatePlan(
+  token: string,
+  planId: string,
+  payload: PlanUpdatePayload
+): Promise<CommercialPlan> {
   return apiFetch<CommercialPlan>(`/v1/admin/plans/${planId}`, {
     token,
     method: 'PATCH',
@@ -67,16 +77,19 @@ export async function updatePlan(token: string, planId: string, payload: PlanUpd
 export async function fetchCompanies(
   token: string,
   tenantId: string,
-  includeInactive = false,
+  includeInactive = false
 ): Promise<TenantCompany[]> {
   const query = includeInactive ? '?include_inactive=true' : '';
-  return apiFetch<TenantCompany[]>(`/v1/admin/tenants/${tenantId}/companies${query}`, { token });
+  return apiFetch<TenantCompany[]>(
+    `/v1/admin/tenants/${tenantId}/companies${query}`,
+    { token }
+  );
 }
 
 export async function attachCompanies(
   token: string,
   tenantId: string,
-  companies: CompanyCreatePayload[],
+  companies: CompanyCreatePayload[]
 ): Promise<TenantCompany[]> {
   return apiFetch<TenantCompany[]>(`/v1/admin/tenants/${tenantId}/companies`, {
     token,
@@ -88,7 +101,7 @@ export async function attachCompanies(
 export async function updateCompany(
   token: string,
   companyId: string,
-  payload: CompanyUpdatePayload,
+  payload: CompanyUpdatePayload
 ): Promise<TenantCompany> {
   return apiFetch<TenantCompany>(`/v1/admin/companies/${companyId}`, {
     token,
@@ -100,47 +113,58 @@ export async function updateCompany(
 export async function fetchUsers(
   token: string,
   tenantId: string,
-  includeInactive = false,
+  includeInactive = false
 ): Promise<AdminUserAccount[]> {
   const query = includeInactive ? '?include_inactive=true' : '';
-  return apiFetch<AdminUserAccount[]>(`/v1/t/${tenantId}/admin/users${query}`, { token });
+  return apiFetch<AdminUserAccount[]>(`/v1/t/${tenantId}/admin/users${query}`, {
+    token,
+  });
 }
 
 export async function suspendUser(
   token: string,
   tenantId: string,
   userId: string,
-  reason?: string,
+  reason?: string
 ): Promise<AdminUserAccount> {
-  return apiFetch<AdminUserAccount>(`/v1/t/${tenantId}/admin/users/${userId}/suspend`, {
-    token,
-    method: 'POST',
-    body: reason ? { reason } : {},
-  });
+  return apiFetch<AdminUserAccount>(
+    `/v1/t/${tenantId}/admin/users/${userId}/suspend`,
+    {
+      token,
+      method: 'POST',
+      body: reason ? { reason } : {},
+    }
+  );
 }
 
 export async function reinstateUser(
   token: string,
   tenantId: string,
   userId: string,
-  reactivate = false,
+  reactivate = false
 ): Promise<AdminUserAccount> {
-  return apiFetch<AdminUserAccount>(`/v1/t/${tenantId}/admin/users/${userId}/reinstate`, {
-    token,
-    method: 'POST',
-    body: { reactivate },
-  });
+  return apiFetch<AdminUserAccount>(
+    `/v1/t/${tenantId}/admin/users/${userId}/reinstate`,
+    {
+      token,
+      method: 'POST',
+      body: { reactivate },
+    }
+  );
 }
 
 export async function initiatePasswordReset(
   token: string,
   tenantId: string,
-  userId: string,
+  userId: string
 ): Promise<PasswordResetTokenPayload> {
-  return apiFetch<PasswordResetTokenPayload>(`/v1/t/${tenantId}/admin/users/${userId}/reset-password`, {
-    token,
-    method: 'POST',
-  });
+  return apiFetch<PasswordResetTokenPayload>(
+    `/v1/t/${tenantId}/admin/users/${userId}/reset-password`,
+    {
+      token,
+      method: 'POST',
+    }
+  );
 }
 
 export async function confirmPasswordReset(
@@ -148,7 +172,7 @@ export async function confirmPasswordReset(
   tenantId: string,
   userId: string,
   resetToken: string,
-  newPassword: string,
+  newPassword: string
 ): Promise<AdminUserAccount> {
   return apiFetch<AdminUserAccount>(
     `/v1/t/${tenantId}/admin/users/${userId}/reset-password/confirm`,
@@ -156,6 +180,6 @@ export async function confirmPasswordReset(
       token,
       method: 'POST',
       body: { token: resetToken, newPassword },
-    },
+    }
   );
 }

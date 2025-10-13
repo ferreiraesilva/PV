@@ -27,5 +27,8 @@ class Tenant(Base):
     )
 
     financial_settings = relationship(
-        "FinancialSettings", back_populates="tenant", uselist=False, cascade="all, delete-orphan"
+        "FinancialSettings",
+        back_populates="tenant",
+        uselist=False,
+        cascade="all, delete-orphan",
     )

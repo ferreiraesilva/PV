@@ -64,12 +64,15 @@ tenant_admin_router = APIRouter(
     dependencies=[Depends(require_roles(SUPERADMIN_ROLE, TENANT_ADMIN_ROLE))],
 )
 
+
 # Dependency
 def get_administration_service(db: SessionDependency) -> AdministrationService:
     return AdministrationService(db)
 
+
 def get_financial_settings_service(db: SessionDependency) -> FinancialSettingsService:
     return FinancialSettingsService(db)
+
 
 AdminServiceDependency = Annotated[
     AdministrationService, Depends(get_administration_service)
@@ -77,6 +80,7 @@ AdminServiceDependency = Annotated[
 FinancialSettingsServiceDependency = Annotated[
     FinancialSettingsService, Depends(get_financial_settings_service)
 ]
+
 
 # Helper functions
 def _acting_user(current_user: CurrentUser) -> ActingUser:
@@ -90,6 +94,7 @@ def _acting_user(current_user: CurrentUser) -> ActingUser:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user context"
         ) from exc
+
 
 def _handle_service_error(exc: Exception) -> None:
     if isinstance(exc, PermissionDeniedError):
@@ -106,9 +111,11 @@ def _handle_service_error(exc: Exception) -> None:
         ) from exc
     raise exc
 
+
 def _set_audit_actor(request: Request, current_user: CurrentUser) -> None:
     request.state.audit_actor_roles = current_user.roles
     request.state.audit_actor_user_id = current_user.user_id
+
 
 def _audit_entity(
     request: Request,
@@ -125,10 +132,12 @@ def _audit_entity(
         else:
             request.state.audit_payload_out = payload
 
+
 def _audit_collection(request: Request, *, resource_type: str, count: int) -> None:
     request.state.audit_resource_type = resource_type
     request.state.audit_resource_id = "collection"
     request.state.audit_payload_out = {"count": count}
+
 
 def _map_companies(payload: TenantCreateRequest) -> list[CompanyInput]:
     companies: list[CompanyInput] = []
@@ -150,6 +159,7 @@ def _map_companies(payload: TenantCreateRequest) -> list[CompanyInput]:
         )
     return companies
 
+
 def _map_admins(payload: TenantCreateRequest) -> list[UserInput]:
     admins: list[UserInput] = []
     for admin in payload.administrators:
@@ -162,6 +172,7 @@ def _map_admins(payload: TenantCreateRequest) -> list[UserInput]:
             )
         )
     return admins
+
 
 def _plan_response(plan) -> CommercialPlanResponse:
     return CommercialPlanResponse(
@@ -178,6 +189,7 @@ def _plan_response(plan) -> CommercialPlanResponse:
         updatedAt=plan.updated_at,
     )
 
+
 def _tenant_response(tenant) -> TenantResponse:
     return TenantResponse(
         id=tenant.id,
@@ -188,6 +200,7 @@ def _tenant_response(tenant) -> TenantResponse:
         createdAt=tenant.created_at,
         updatedAt=tenant.updated_at,
     )
+
 
 def _subscription_response(subscription) -> TenantPlanSubscriptionResponse:
     return TenantPlanSubscriptionResponse(
@@ -201,6 +214,7 @@ def _subscription_response(subscription) -> TenantPlanSubscriptionResponse:
         updatedAt=subscription.updated_at,
     )
 
+
 def _financial_settings_response(settings) -> FinancialSettings:
     return FinancialSettings(
         tenant_id=str(settings.tenant_id),
@@ -208,6 +222,7 @@ def _financial_settings_response(settings) -> FinancialSettings:
         default_multiplier=settings.default_multiplier,
         cancellation_multiplier=settings.cancellation_multiplier,
     )
+
 
 def _payment_plan_template_response(template) -> PaymentPlanTemplateResponse:
     return PaymentPlanTemplateResponse(
@@ -232,6 +247,7 @@ def _payment_plan_template_response(template) -> PaymentPlanTemplateResponse:
         ],
     )
 
+
 def _company_response(company) -> TenantCompanyResponse:
     return TenantCompanyResponse(
         id=company.id,
@@ -252,6 +268,7 @@ def _company_response(company) -> TenantCompanyResponse:
         updatedAt=company.updated_at,
     )
 
+
 def _user_response(user) -> UserResponse:
     return UserResponse(
         id=str(user.id),
@@ -265,6 +282,7 @@ def _user_response(user) -> UserResponse:
         createdAt=user.created_at,
         updatedAt=user.updated_at,
     )
+
 
 # Superuser endpoints
 @superuser_router.get("/plans", response_model=list[CommercialPlanResponse])
@@ -284,6 +302,7 @@ def list_plans(
     _audit_collection(request, resource_type="commercial_plan", count=len(responses))
     return responses
 
+
 @superuser_router.get("/plans/{plan_id}", response_model=CommercialPlanResponse)
 def get_plan(
     request: Request,
@@ -302,6 +321,7 @@ def get_plan(
         request, resource_type="commercial_plan", resource_id=plan.id, payload=response
     )
     return response
+
 
 @superuser_router.patch("/plans/{plan_id}", response_model=CommercialPlanResponse)
 def update_plan(
@@ -335,6 +355,7 @@ def update_plan(
     )
     return response
 
+
 @superuser_router.post(
     "/plans",
     response_model=CommercialPlanResponse,
@@ -367,6 +388,7 @@ def create_plan(
         request, resource_type="commercial_plan", resource_id=plan.id, payload=response
     )
     return response
+
 
 @superuser_router.post(
     "/tenants",
@@ -402,6 +424,7 @@ def create_tenant(
     )
     return response
 
+
 @superuser_router.post(
     "/tenants/{tenant_id}/assign-plan",
     response_model=TenantPlanSubscriptionResponse,
@@ -431,8 +454,11 @@ def assign_plan(
     )
     return response
 
+
 # Tenant Admin endpoints
-@tenant_admin_router.get("/{tenant_id}/financial-settings", response_model=FinancialSettings)
+@tenant_admin_router.get(
+    "/{tenant_id}/financial-settings", response_model=FinancialSettings
+)
 def get_financial_settings(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -455,11 +481,17 @@ def get_financial_settings(
         _handle_service_error(exc)
     response = _financial_settings_response(settings)
     _audit_entity(
-        request, resource_type="financial_settings", resource_id=tenant_id, payload=response
+        request,
+        resource_type="financial_settings",
+        resource_id=tenant_id,
+        payload=response,
     )
     return response
 
-@tenant_admin_router.put("/{tenant_id}/financial-settings", response_model=FinancialSettings)
+
+@tenant_admin_router.put(
+    "/{tenant_id}/financial-settings", response_model=FinancialSettings
+)
 def update_financial_settings(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -479,11 +511,17 @@ def update_financial_settings(
         _handle_service_error(exc)
     response = _financial_settings_response(settings)
     _audit_entity(
-        request, resource_type="financial_settings", resource_id=tenant_id, payload=response
+        request,
+        resource_type="financial_settings",
+        resource_id=tenant_id,
+        payload=response,
     )
     return response
 
-@tenant_admin_router.get("/{tenant_id}/payment-plans", response_model=list[PaymentPlanTemplateResponse])
+
+@tenant_admin_router.get(
+    "/{tenant_id}/payment-plans", response_model=list[PaymentPlanTemplateResponse]
+)
 def list_payment_plan_templates(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -506,6 +544,7 @@ def list_payment_plan_templates(
         request, resource_type="payment_plan_template", count=len(responses)
     )
     return responses
+
 
 @tenant_admin_router.post(
     "/{tenant_id}/payment-plans",
@@ -551,6 +590,7 @@ def create_payment_plan_template(
         payload=response,
     )
     return response
+
 
 @tenant_admin_router.patch(
     "/{tenant_id}/payment-plans/{template_id}",
@@ -600,6 +640,7 @@ def update_payment_plan_template(
     )
     return response
 
+
 @tenant_admin_router.get("/tenants", response_model=list[TenantResponse])
 def list_tenants(
     request: Request,
@@ -618,6 +659,7 @@ def list_tenants(
     responses = [_tenant_response(tenant) for tenant in tenants]
     _audit_collection(request, resource_type="tenant", count=len(responses))
     return responses
+
 
 @tenant_admin_router.get("/tenants/{tenant_id}", response_model=TenantResponse)
 def get_tenant(
@@ -639,6 +681,7 @@ def get_tenant(
         request, resource_type="tenant", resource_id=tenant.id, payload=response
     )
     return response
+
 
 @tenant_admin_router.post(
     "/{tenant_id}/companies",
@@ -687,7 +730,10 @@ def attach_companies(
     )
     return responses
 
-@tenant_admin_router.get("/{tenant_id}/companies", response_model=list[TenantCompanyResponse])
+
+@tenant_admin_router.get(
+    "/{tenant_id}/companies", response_model=list[TenantCompanyResponse]
+)
 def list_companies(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -709,7 +755,10 @@ def list_companies(
     _audit_collection(request, resource_type="tenant_companies", count=len(responses))
     return responses
 
-@tenant_admin_router.patch("/companies/{company_id}", response_model=TenantCompanyResponse)
+
+@tenant_admin_router.patch(
+    "/companies/{company_id}", response_model=TenantCompanyResponse
+)
 def update_company(
     request: Request,
     company_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -753,7 +802,12 @@ def update_company(
     )
     return response
 
-@tenant_admin_router.post("/{tenant_id}/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+
+@tenant_admin_router.post(
+    "/{tenant_id}/users",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_user(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -782,6 +836,7 @@ def create_user(
     _audit_entity(request, resource_type="user", resource_id=user.id, payload=response)
     return response
 
+
 @tenant_admin_router.get("/{tenant_id}/users", response_model=list[UserResponse])
 def list_users(
     request: Request,
@@ -804,6 +859,7 @@ def list_users(
     _audit_collection(request, resource_type="user", count=len(responses))
     return responses
 
+
 @tenant_admin_router.get("/{tenant_id}/users/{user_id}", response_model=UserResponse)
 def get_user(
     request: Request,
@@ -823,6 +879,7 @@ def get_user(
     response = _user_response(user)
     _audit_entity(request, resource_type="user", resource_id=user.id, payload=response)
     return response
+
 
 @tenant_admin_router.patch("/{tenant_id}/users/{user_id}", response_model=UserResponse)
 def update_user(
@@ -854,7 +911,10 @@ def update_user(
     _audit_entity(request, resource_type="user", resource_id=user.id, payload=response)
     return response
 
-@tenant_admin_router.post("/{tenant_id}/users/{user_id}/suspend", response_model=UserResponse)
+
+@tenant_admin_router.post(
+    "/{tenant_id}/users/{user_id}/suspend", response_model=UserResponse
+)
 def suspend_user(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -877,7 +937,10 @@ def suspend_user(
     )
     return response
 
-@tenant_admin_router.post("/{tenant_id}/users/{user_id}/reinstate", response_model=UserResponse)
+
+@tenant_admin_router.post(
+    "/{tenant_id}/users/{user_id}/reinstate", response_model=UserResponse
+)
 def reinstate_user(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -905,7 +968,10 @@ def reinstate_user(
     )
     return response
 
-@tenant_admin_router.post("/{tenant_id}/users/{user_id}/reset-password", response_model=PasswordResetResponse)
+
+@tenant_admin_router.post(
+    "/{tenant_id}/users/{user_id}/reset-password", response_model=PasswordResetResponse
+)
 def initiate_password_reset(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],
@@ -930,7 +996,10 @@ def initiate_password_reset(
     )
     return response
 
-@tenant_admin_router.post("/{tenant_id}/users/{user_id}/reset-password/confirm", response_model=UserResponse)
+
+@tenant_admin_router.post(
+    "/{tenant_id}/users/{user_id}/reset-password/confirm", response_model=UserResponse
+)
 def confirm_password_reset(
     request: Request,
     tenant_id: Annotated[str, Path(pattern=r"^[0-9a-fA-F-]{36}$")],

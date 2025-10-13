@@ -40,7 +40,7 @@ describe('useAudit', () => {
       expect.objectContaining({
         sortBy: 'occurredAt',
         sortOrder: 'desc',
-      }),
+      })
     );
   });
 
@@ -120,7 +120,7 @@ describe('useAudit', () => {
         expect.objectContaining({
           sortBy: 'endpoint',
           sortOrder: 'desc',
-        }),
+        })
       );
     });
   });

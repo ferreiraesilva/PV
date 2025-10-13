@@ -30,7 +30,11 @@ export function AppLayout({ onLogout, children }: AppLayoutProps) {
         </div>
         <div className="header-actions">
           {tenantId && <span className="tenant-pill">Tenant: {tenantId}</span>}
-          <button type="button" className="secondary" onClick={() => onLogout()}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => onLogout()}
+          >
             Sair
           </button>
         </div>
@@ -43,7 +47,9 @@ export function AppLayout({ onLogout, children }: AppLayoutProps) {
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
-                className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                className={({ isActive }) =>
+                  `nav-link${isActive ? ' active' : ''}`
+                }
               >
                 {item.label}
               </NavLink>

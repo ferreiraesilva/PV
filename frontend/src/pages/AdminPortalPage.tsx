@@ -14,8 +14,12 @@ const AdminPortalPage = () => {
   const { accessToken, tenantId, roles } = useAuth();
   const [tenants, setTenants] = useState<TenantSummary[]>([]);
   const [tenantsLoading, setTenantsLoading] = useState(false);
-  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(tenantId ?? null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>(roles.includes('superadmin') ? 'superuser' : 'tenant');
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(
+    tenantId ?? null
+  );
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    roles.includes('superadmin') ? 'superuser' : 'tenant'
+  );
   const [error, setError] = useState<string | null>(null);
 
   const isSuperuser = roles.includes('superadmin');
@@ -69,7 +73,10 @@ const AdminPortalPage = () => {
   const canShowSuperuserTab = isSuperuser;
   const canShowTenantTab = isTenantAdmin;
 
-  const tenantOptions = useMemo(() => [...tenants].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')), [tenants]);
+  const tenantOptions = useMemo(
+    () => [...tenants].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+    [tenants]
+  );
 
   return (
     <div className="admin-portal-page stack">

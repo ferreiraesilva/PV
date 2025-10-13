@@ -5,6 +5,7 @@ Revises: 20251006_0004_payment_plan_templates
 Create Date: 2025-10-12 00:00:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa

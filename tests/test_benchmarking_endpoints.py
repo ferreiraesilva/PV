@@ -23,9 +23,7 @@ DEFAULT_RATE,PME Financas,Sudeste,1.4
 default_rate,PME Financas,Sudeste,1.0
 default_rate,PME Financas,Sul,1.6
 default_rate,,Sudeste,1.1
-""".encode(
-        "utf-8"
-    )
+""".encode("utf-8")
     response = client.post(
         f"/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
         params={"filename": "dataset.csv"},
@@ -57,9 +55,7 @@ spread,Enterprise Servicos,Norte,4
 spread,Enterprise Servicos,Sul,2.5
 vpl,Micro Comercio,Sudeste,1.0
 vpl,Micro Comercio,Sudeste,1.1
-""".encode(
-        "utf-8"
-    )
+""".encode("utf-8")
     response = client.post(
         f"/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
         params={"filename": "metrics.csv"},
@@ -81,9 +77,7 @@ def test_benchmark_get_aggregations_returns_latest_data(
 inadimplencia,Large Industrias,Sudeste,5
 inadimplencia,Large Industrias,Sudeste,4.5
 inadimplencia,Large Industrias,Sudeste,5.5
-""".encode(
-        "utf-8"
-    )
+""".encode("utf-8")
     ingest_response = client.post(
         f"/v1/t/{TENANT_ID}/benchmarking/batches/{batch_id}/ingest",
         params={"filename": "data.csv"},

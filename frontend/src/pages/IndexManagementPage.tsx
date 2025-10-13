@@ -13,7 +13,8 @@ export default function IndexManagementPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canManage = user?.roles.includes('tenant_admin') || user?.roles.includes('superuser');
+  const canManage =
+    user?.roles.includes('tenant_admin') || user?.roles.includes('superuser');
 
   const handleFetch = async (event: FormEvent) => {
     event.preventDefault();
@@ -54,17 +55,23 @@ export default function IndexManagementPage() {
 
     try {
       const fileContent = await file.text();
-      const lines = fileContent.split(/\r?\n/).filter(line => line.trim() !== '');
+      const lines = fileContent
+        .split(/\r?\n/)
+        .filter((line) => line.trim() !== '');
       if (lines.length < 2) {
-        throw new Error('O arquivo CSV deve conter um cabeçalho e pelo menos uma linha de dados.');
+        throw new Error(
+          'O arquivo CSV deve conter um cabeçalho e pelo menos uma linha de dados.'
+        );
       }
 
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
       const dateIndex = headers.indexOf('reference_date');
       const valueIndex = headers.indexOf('value');
 
       if (dateIndex === -1 || valueIndex === -1) {
-        throw new Error('O cabeçalho do CSV deve conter as colunas "reference_date" e "value".');
+        throw new Error(
+          'O cabeçalho do CSV deve conter as colunas "reference_date" e "value".'
+        );
       }
 
       const parsedValues = lines.slice(1).map((line, i) => {
@@ -73,13 +80,19 @@ export default function IndexManagementPage() {
         const value = parseFloat(columns[valueIndex]?.trim());
 
         if (!reference_date || isNaN(value)) {
-          throw new Error(`Erro na linha ${i + 2}: formato de data ou valor inválido.`);
+          throw new Error(
+            `Erro na linha ${i + 2}: formato de data ou valor inválido.`
+          );
         }
         return { reference_date, value };
       });
 
-      await createIndexValues(tenantId, accessToken, indexCode, { values: parsedValues });
-      alert('Valores do índice enviados com sucesso! Clique em "Buscar Valores" para ver a lista atualizada.');
+      await createIndexValues(tenantId, accessToken, indexCode, {
+        values: parsedValues,
+      });
+      alert(
+        'Valores do índice enviados com sucesso! Clique em "Buscar Valores" para ver a lista atualizada.'
+      );
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -88,7 +101,11 @@ export default function IndexManagementPage() {
   };
 
   if (!tenantId || !accessToken) {
-    return <div className="card"><p>Autentique-se para gerenciar índices.</p></div>;
+    return (
+      <div className="card">
+        <p>Autentique-se para gerenciar índices.</p>
+      </div>
+    );
   }
 
   return (
@@ -122,8 +139,16 @@ export default function IndexManagementPage() {
             <h3>Cadastrar/Atualizar via CSV</h3>
             <div className="form-field">
               <label htmlFor="csvFile">Arquivo CSV</label>
-              <input id="csvFile" type="file" accept=".csv" onChange={handleFileChange} />
-              <small>O arquivo deve ter as colunas: <code>reference_date,value</code>.</small>
+              <input
+                id="csvFile"
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+              />
+              <small>
+                O arquivo deve ter as colunas: <code>reference_date,value</code>
+                .
+              </small>
             </div>
             <div className="form-actions">
               <button type="submit" className="button" disabled={uploading}>

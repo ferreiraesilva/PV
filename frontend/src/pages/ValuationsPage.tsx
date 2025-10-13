@@ -2,16 +2,30 @@ import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useValuations } from '../hooks/useValuations';
 import { evaluateValuation } from '../api/valuations';
-import type { ValuationCashflowInput, ValuationResponse, ValuationScenarioInput } from '../api/types';
+import type {
+  ValuationCashflowInput,
+  ValuationResponse,
+  ValuationScenarioInput,
+} from '../api/types';
 import './ValuationsPage.css';
 
 export default function ValuationsPage() {
   const { tenantId, accessToken } = useAuth();
   const {
-    snapshotId, setSnapshotId,
-    cashflows, updateCashflow, addCashflow, removeCashflow,
-    scenarios, updateScenario, addScenario, removeScenario,
-    error, result, submitting, handleSubmit,
+    snapshotId,
+    setSnapshotId,
+    cashflows,
+    updateCashflow,
+    addCashflow,
+    removeCashflow,
+    scenarios,
+    updateScenario,
+    addScenario,
+    removeScenario,
+    error,
+    result,
+    submitting,
+    handleSubmit,
   } = useValuations();
 
   if (!tenantId || !accessToken) {
@@ -37,12 +51,19 @@ export default function ValuationsPage() {
             onChange={(event) => setSnapshotId(event.target.value)}
             placeholder="UUID do snapshot"
           />
-          <small>Use o identificador de snapshot utilizado nas rotinas de valuations (UUID).</small>
+          <small>
+            Use o identificador de snapshot utilizado nas rotinas de valuations
+            (UUID).
+          </small>
         </div>
         <section className="cashflows">
           <header>
             <h2>Fluxos de caixa</h2>
-            <button type="button" className="button ghost" onClick={addCashflow}>
+            <button
+              type="button"
+              className="button ghost"
+              onClick={addCashflow}
+            >
               Adicionar fluxo
             </button>
           </header>
@@ -61,19 +82,74 @@ export default function ValuationsPage() {
                 {cashflows.map((item, index) => (
                   <tr key={`cashflow-${index}`}>
                     <td>
-                      <input type="date" value={item.due_date} onChange={(event) => updateCashflow(index, 'due_date', event.target.value as string)} />
+                      <input
+                        type="date"
+                        value={item.due_date}
+                        onChange={(event) =>
+                          updateCashflow(
+                            index,
+                            'due_date',
+                            event.target.value as string
+                          )
+                        }
+                      />
                     </td>
                     <td>
-                      <input type="number" min="0" step="0.01" value={item.amount} onChange={(event) => updateCashflow(index, 'amount', event.target.valueAsNumber || 0)} />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.amount}
+                        onChange={(event) =>
+                          updateCashflow(
+                            index,
+                            'amount',
+                            event.target.valueAsNumber || 0
+                          )
+                        }
+                      />
                     </td>
                     <td>
-                      <input type="number" min="0" max="1" step="0.001" value={item.probability_default} onChange={(event) => updateCashflow(index, 'probability_default', event.target.valueAsNumber || 0)} />
+                      <input
+                        type="number"
+                        min="0"
+                        max="1"
+                        step="0.001"
+                        value={item.probability_default}
+                        onChange={(event) =>
+                          updateCashflow(
+                            index,
+                            'probability_default',
+                            event.target.valueAsNumber || 0
+                          )
+                        }
+                      />
                     </td>
                     <td>
-                      <input type="number" min="0" max="1" step="0.001" value={item.probability_cancellation} onChange={(event) => updateCashflow(index, 'probability_cancellation', event.target.valueAsNumber || 0)} />
+                      <input
+                        type="number"
+                        min="0"
+                        max="1"
+                        step="0.001"
+                        value={item.probability_cancellation}
+                        onChange={(event) =>
+                          updateCashflow(
+                            index,
+                            'probability_cancellation',
+                            event.target.valueAsNumber || 0
+                          )
+                        }
+                      />
                     </td>
                     <td>
-                      <button type="button" className="remove" onClick={() => removeCashflow(index)} disabled={cashflows.length === 1}>✕</button>
+                      <button
+                        type="button"
+                        className="remove"
+                        onClick={() => removeCashflow(index)}
+                        disabled={cashflows.length === 1}
+                      >
+                        ✕
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -84,7 +160,11 @@ export default function ValuationsPage() {
         <section className="scenarios">
           <header>
             <h2>Cenários</h2>
-            <button type="button" className="button ghost" onClick={addScenario}>
+            <button
+              type="button"
+              className="button ghost"
+              onClick={addScenario}
+            >
               Adicionar cenário
             </button>
           </header>
@@ -95,7 +175,13 @@ export default function ValuationsPage() {
                   <label>Identificador</label>
                   <input
                     value={scenario.code}
-                    onChange={(event) => updateScenario(index, 'code', event.target.value as string)}
+                    onChange={(event) =>
+                      updateScenario(
+                        index,
+                        'code',
+                        event.target.value as string
+                      )
+                    }
                   />
                 </div>
                 <div className="form-field">
@@ -105,7 +191,13 @@ export default function ValuationsPage() {
                     min="0"
                     step="0.0001"
                     value={scenario.discount_rate}
-                    onChange={(event) => updateScenario(index, 'discount_rate', event.target.valueAsNumber || 0)}
+                    onChange={(event) =>
+                      updateScenario(
+                        index,
+                        'discount_rate',
+                        event.target.valueAsNumber || 0
+                      )
+                    }
                   />
                 </div>
                 <div className="form-field">
@@ -115,7 +207,13 @@ export default function ValuationsPage() {
                     min="0"
                     step="0.01"
                     value={scenario.default_multiplier}
-                    onChange={(event) => updateScenario(index, 'default_multiplier', event.target.valueAsNumber || 0)}
+                    onChange={(event) =>
+                      updateScenario(
+                        index,
+                        'default_multiplier',
+                        event.target.valueAsNumber || 0
+                      )
+                    }
                   />
                 </div>
                 <div className="form-field">
@@ -125,7 +223,13 @@ export default function ValuationsPage() {
                     min="0"
                     step="0.01"
                     value={scenario.cancellation_multiplier}
-                    onChange={(event) => updateScenario(index, 'cancellation_multiplier', event.target.valueAsNumber || 0)}
+                    onChange={(event) =>
+                      updateScenario(
+                        index,
+                        'cancellation_multiplier',
+                        event.target.valueAsNumber || 0
+                      )
+                    }
                   />
                 </div>
                 <button
@@ -164,9 +268,24 @@ export default function ValuationsPage() {
               {result.results.map((item) => (
                 <tr key={item.code}>
                   <td>{item.code}</td>
-                  <td>{item.gross_present_value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td>{item.net_present_value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td>{item.expected_losses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                  <td>
+                    {item.gross_present_value.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    })}
+                  </td>
+                  <td>
+                    {item.net_present_value.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    })}
+                  </td>
+                  <td>
+                    {item.expected_losses.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    })}
+                  </td>
                 </tr>
               ))}
             </tbody>

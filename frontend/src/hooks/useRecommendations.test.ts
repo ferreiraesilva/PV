@@ -9,8 +9,14 @@ import * as RecommendationsAPI from '../api/recommendations';
 vi.mock('./useAuth');
 vi.mock('../api/recommendations');
 
-const mockCreateRecommendationRun = vi.spyOn(RecommendationsAPI, 'createRecommendationRun');
-const mockGetRecommendationRun = vi.spyOn(RecommendationsAPI, 'getRecommendationRun');
+const mockCreateRecommendationRun = vi.spyOn(
+  RecommendationsAPI,
+  'createRecommendationRun'
+);
+const mockGetRecommendationRun = vi.spyOn(
+  RecommendationsAPI,
+  'getRecommendationRun'
+);
 
 describe('useRecommendations', () => {
   const mockTenantId = 'test-tenant';
@@ -104,7 +110,9 @@ describe('useRecommendations', () => {
         await result.current.handleFetchRun();
       });
 
-      expect(result.current.error).toBe('Informe o runId retornado pelo backend.');
+      expect(result.current.error).toBe(
+        'Informe o runId retornado pelo backend.'
+      );
       expect(mockGetRecommendationRun).not.toHaveBeenCalled();
     });
 
@@ -119,7 +127,11 @@ describe('useRecommendations', () => {
         await result.current.handleFetchRun();
       });
 
-      expect(mockGetRecommendationRun).toHaveBeenCalledWith(mockTenantId, 'job-123', mockAccessToken);
+      expect(mockGetRecommendationRun).toHaveBeenCalledWith(
+        mockTenantId,
+        'job-123',
+        mockAccessToken
+      );
       expect(result.current.runDetail?.runId).toBe('job-123');
       expect(result.current.error).toBeNull();
     });

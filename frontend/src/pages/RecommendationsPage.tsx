@@ -6,13 +6,18 @@ import './RecommendationsPage.css';
 export default function RecommendationsPage() {
   const { tenantId } = useAuth();
   const {
-    runType, setRunType,
-    snapshotId, setSnapshotId,
-    simulationId, setSimulationId,
-    parameters, setParameters,
+    runType,
+    setRunType,
+    snapshotId,
+    setSnapshotId,
+    simulationId,
+    setSimulationId,
+    parameters,
+    setParameters,
     jobStatus,
     runDetail,
-    runId, setRunId,
+    runId,
+    setRunId,
     error,
     loading,
     fetching,
@@ -34,7 +39,12 @@ export default function RecommendationsPage() {
         title="RecomendaÃ§Ãµes (IA)"
         subtitle="Orquestre execuÃ§Ãµes de modelos preditivos e acompanhe status dos runs."
         actions={
-          <button className="button ghost" type="button" onClick={handleFetchRun} disabled={fetching}>
+          <button
+            className="button ghost"
+            type="button"
+            onClick={handleFetchRun}
+            disabled={fetching}
+          >
             {fetching ? 'Consultando...' : 'Consultar run'}
           </button>
         }
@@ -43,7 +53,11 @@ export default function RecommendationsPage() {
         <div className="grid two">
           <div className="form-field">
             <label htmlFor="runType">Tipo do run</label>
-            <input id="runType" value={runType} onChange={(event) => setRunType(event.target.value)} />
+            <input
+              id="runType"
+              value={runType}
+              onChange={(event) => setRunType(event.target.value)}
+            />
             <small>Ex.: pricing, churn, clusterizaÃ§Ã£o.</small>
           </div>
           <div className="form-field">
@@ -54,7 +68,9 @@ export default function RecommendationsPage() {
               onChange={(event) => setRunId(event.target.value)}
               placeholder="jobId retornado no start"
             />
-            <small>Use este identificador para consultar o run posteriormente.</small>
+            <small>
+              Use este identificador para consultar o run posteriormente.
+            </small>
           </div>
         </div>
         <div className="grid two">
@@ -105,11 +121,17 @@ export default function RecommendationsPage() {
             </div>
             <div>
               <span className="label">Enviado em</span>
-              <p className="value">{new Date(jobStatus.submittedAt).toLocaleString()}</p>
+              <p className="value">
+                {new Date(jobStatus.submittedAt).toLocaleString()}
+              </p>
             </div>
             <div>
               <span className="label">Finalizado em</span>
-              <p className="value">{jobStatus.completedAt ? new Date(jobStatus.completedAt).toLocaleString() : 'â€”'}</p>
+              <p className="value">
+                {jobStatus.completedAt
+                  ? new Date(jobStatus.completedAt).toLocaleString()
+                  : 'â€”'}
+              </p>
             </div>
           </div>
           {jobStatus.message && (

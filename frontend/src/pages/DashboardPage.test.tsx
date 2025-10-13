@@ -29,7 +29,7 @@ describe('DashboardPage', () => {
     render(
       <BrowserRouter>
         <DashboardPage />
-      </BrowserRouter>,
+      </BrowserRouter>
     );
 
     expect(screen.getByText('Painel do SAFV')).toBeInTheDocument();
@@ -38,9 +38,20 @@ describe('DashboardPage', () => {
   });
 
   it('should render all action cards with correct links', () => {
-    mockUseAuth.mockReturnValue({ tenantId: 'test-tenant', accessToken: 'token', user: null, login: vi.fn(), logout: vi.fn(), refresh: vi.fn() });
+    mockUseAuth.mockReturnValue({
+      tenantId: 'test-tenant',
+      accessToken: 'token',
+      user: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refresh: vi.fn(),
+    });
 
-    render(<BrowserRouter><DashboardPage /></BrowserRouter>);
+    render(
+      <BrowserRouter>
+        <DashboardPage />
+      </BrowserRouter>
+    );
 
     expect(screen.getByText('Simulações financeiras')).toBeInTheDocument();
     expect(screen.getByText('Valuation de carteira')).toBeInTheDocument();

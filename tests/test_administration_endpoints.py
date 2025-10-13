@@ -100,7 +100,8 @@ def test_list_plans_passes_include_flag(client, superadmin_headers, _clear_overr
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
     response = client.get(
-        "/v1/admin-portal/superuser/plans?include_inactive=true", headers=superadmin_headers
+        "/v1/admin-portal/superuser/plans?include_inactive=true",
+        headers=superadmin_headers,
     )
 
     assert response.status_code == 200

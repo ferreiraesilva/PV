@@ -9,11 +9,22 @@ interface ApiFetchOptions extends RequestInit {
   token?: string | null;
 }
 
-const isJsonLike = (body: unknown): body is Record<string, unknown> | unknown[] => {
-  return typeof body === 'object' && body !== null && !(body instanceof FormData) && !(body instanceof Blob) && !(body instanceof ArrayBuffer);
+const isJsonLike = (
+  body: unknown
+): body is Record<string, unknown> | unknown[] => {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    !(body instanceof FormData) &&
+    !(body instanceof Blob) &&
+    !(body instanceof ArrayBuffer)
+  );
 };
 
-export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  options: ApiFetchOptions = {}
+): Promise<T> {
   const { token, headers, body, ...rest } = options;
   const url = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
 
@@ -21,13 +32,20 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (token) {
     finalHeaders.set('Authorization', `Bearer ${token}`);
   }
-  if (body !== undefined && isJsonLike(body) && !finalHeaders.has('Content-Type')) {
+  if (
+    body !== undefined &&
+    isJsonLike(body) &&
+    !finalHeaders.has('Content-Type')
+  ) {
     finalHeaders.set('Content-Type', 'application/json');
   }
 
   const response = await fetch(url, {
     ...rest,
-    body: body && isJsonLike(body) ? JSON.stringify(body) : (body as BodyInit | null | undefined),
+    body:
+      body && isJsonLike(body)
+        ? JSON.stringify(body)
+        : (body as BodyInit | null | undefined),
     headers: finalHeaders,
   });
 
@@ -35,14 +53,17 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     let errorBody: unknown = undefined;
     try {
       errorBody = await response.json();
-    } catch (error) {
+    } catch {
       try {
         errorBody = await response.text();
       } catch {
         errorBody = undefined;
       }
     }
-    const error: ApiError = new Error((errorBody as Record<string, unknown>)?.detail as string ?? `Request failed with status ${response.status}`);
+    const error: ApiError = new Error(
+      ((errorBody as Record<string, unknown>)?.detail as string) ??
+        `Request failed with status ${response.status}`
+    );
     error.status = response.status;
     error.body = errorBody;
     throw error;

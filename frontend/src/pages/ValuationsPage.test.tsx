@@ -4,7 +4,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ValuationsPage from './ValuationsPage';
 import * as AuthHook from '../hooks/useAuth';
 import * as ValuationsHook from '../hooks/useValuations';
-import { ValuationCashflowInput, ValuationResponse, ValuationScenarioInput } from '../api/types';
+import {
+  ValuationCashflowInput,
+  ValuationResponse,
+  ValuationScenarioInput,
+} from '../api/types';
 
 // Mock dependencies
 vi.mock('../hooks/useAuth');
@@ -70,7 +74,9 @@ describe('ValuationsPage', () => {
     expect(screen.getByText('Fluxos de caixa')).toBeInTheDocument();
     expect(screen.getByText('Cenários')).toBeInTheDocument();
     expect(screen.getByLabelText('Snapshot ID')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Executar cenários/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Executar cenários/i })
+    ).toBeInTheDocument();
   });
 
   it('should call addCashflow when "Adicionar fluxo" is clicked', () => {
@@ -84,12 +90,18 @@ describe('ValuationsPage', () => {
     render(<ValuationsPage />);
     const codeInput = screen.getByDisplayValue('cenario-0');
     fireEvent.change(codeInput, { target: { value: 'novo-codigo' } });
-    expect(mockActions.updateScenario).toHaveBeenCalledWith(0, 'code', 'novo-codigo');
+    expect(mockActions.updateScenario).toHaveBeenCalledWith(
+      0,
+      'code',
+      'novo-codigo'
+    );
   });
 
   it('should call handleSubmit when the form is submitted', () => {
     render(<ValuationsPage />);
-    const submitButton = screen.getByRole('button', { name: /Executar cenários/i });
+    const submitButton = screen.getByRole('button', {
+      name: /Executar cenários/i,
+    });
     fireEvent.click(submitButton);
     expect(mockActions.handleSubmit).toHaveBeenCalledTimes(1);
   });
@@ -129,15 +141,32 @@ describe('ValuationsPage', () => {
     });
 
     render(<ValuationsPage />);
-    expect(screen.getByRole('button', { name: /Executando.../i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Executando.../i })
+    ).toBeInTheDocument();
   });
 
   it('should render the results table when result state is set', () => {
     const mockResult: ValuationResponse = {
       tenant_id: 'test-tenant',
-      results: [{ code: 'base', gross_present_value: 1000, net_present_value: 950, expected_losses: 50 }],
+      results: [
+        {
+          code: 'base',
+          gross_present_value: 1000,
+          net_present_value: 950,
+          expected_losses: 50,
+        },
+      ],
     };
-    mockUseValuations.mockReturnValue({ ...mockActions, snapshotId: '', cashflows: [], scenarios: [], result: mockResult, error: null, submitting: false });
+    mockUseValuations.mockReturnValue({
+      ...mockActions,
+      snapshotId: '',
+      cashflows: [],
+      scenarios: [],
+      result: mockResult,
+      error: null,
+      submitting: false,
+    });
 
     render(<ValuationsPage />);
     expect(screen.getByText('Resultados consolidados')).toBeInTheDocument();

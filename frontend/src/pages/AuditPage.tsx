@@ -22,7 +22,13 @@ export default function AuditPage() {
     handleSort,
   } = useAudit();
 
-  const SortableHeader = ({ column, label }: { column: keyof AuditLogEntry; label: string }) => {
+  const SortableHeader = ({
+    column,
+    label,
+  }: {
+    column: keyof AuditLogEntry;
+    label: string;
+  }) => {
     const isSorted = sortBy === column;
     const icon = isSorted ? (sortOrder === 'asc' ? '▲' : '▼') : '';
     return (
@@ -54,7 +60,9 @@ export default function AuditPage() {
               id="from"
               type="datetime-local"
               value={filters.from}
-              onChange={(event) => handleFilterChange('from', event.target.value)}
+              onChange={(event) =>
+                handleFilterChange('from', event.target.value)
+              }
             />
           </div>
           <div className="form-field">
@@ -73,7 +81,9 @@ export default function AuditPage() {
             <input
               id="requestId"
               value={filters.requestId}
-              onChange={(event) => handleFilterChange('requestId', event.target.value)}
+              onChange={(event) =>
+                handleFilterChange('requestId', event.target.value)
+              }
               placeholder="UUID do request"
             />
           </div>
@@ -82,7 +92,9 @@ export default function AuditPage() {
             <input
               id="userId"
               value={filters.userId}
-              onChange={(event) => handleFilterChange('userId', event.target.value)}
+              onChange={(event) =>
+                handleFilterChange('userId', event.target.value)
+              }
               placeholder="UUID do usuário"
             />
           </div>
@@ -136,14 +148,20 @@ export default function AuditPage() {
         )}
         {(page > 1 || hasNextPage) && (
           <footer className="pagination-footer">
-            <span>
-              Página {page}
-            </span>
+            <span>Página {page}</span>
             <div className="pagination-controls">
-              <button className="button ghost" onClick={() => setPage(p => p - 1)} disabled={page === 1 || loading}>
+              <button
+                className="button ghost"
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1 || loading}
+              >
                 Anterior
               </button>
-              <button className="button ghost" onClick={() => setPage(p => p + 1)} disabled={!hasNextPage || loading}>
+              <button
+                className="button ghost"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={!hasNextPage || loading}
+              >
                 Próxima
               </button>
             </div>

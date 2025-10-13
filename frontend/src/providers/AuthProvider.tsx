@@ -1,7 +1,19 @@
-import { createContext, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { REFRESH_THRESHOLD_MS } from '../api/config';
-import { login as loginRequest, logout as logoutRequest, refresh as refreshRequest } from '../api/auth';
+import {
+  login as loginRequest,
+  logout as logoutRequest,
+  refresh as refreshRequest,
+} from '../api/auth';
 import type { AuthTokens } from '../api/auth';
 
 interface AuthUser {
@@ -41,9 +53,13 @@ function decodeBase64Url(payload: string): string {
   if (typeof globalThis.atob === 'function') {
     return globalThis.atob(normalized);
   }
-  const globalBuffer = (globalThis as Record<string, unknown>).Buffer as | {
-    from(data: string, encoding: string): { toString(encoding: string): string };
-  }
+  const globalBuffer = (globalThis as Record<string, unknown>).Buffer as
+    | {
+        from(
+          data: string,
+          encoding: string
+        ): { toString(encoding: string): string };
+      }
     | undefined;
   if (globalBuffer) {
     return globalBuffer.from(normalized, 'base64').toString('utf-8');
@@ -69,7 +85,8 @@ function extractUserFromToken(token: string): AuthUser | null {
     const decoded = decodeBase64Url(segments[1]);
     const payload = JSON.parse(decoded) as JwtPayload;
     const id = typeof payload.sub === 'string' ? payload.sub : null;
-    const tenantId = typeof payload.tenant_id === 'string' ? payload.tenant_id : null;
+    const tenantId =
+      typeof payload.tenant_id === 'string' ? payload.tenant_id : null;
     const rolesRaw = payload.roles;
     const roles: string[] = Array.isArray(rolesRaw)
       ? rolesRaw.filter((value): value is string => typeof value === 'string')
@@ -86,7 +103,9 @@ function extractUserFromToken(token: string): AuthUser | null {
   }
 }
 
-export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined
+);
 
 interface Props {
   children: ReactNode;
@@ -112,7 +131,8 @@ export function AuthProvider({ children }: Props) {
       try {
         const parsed = JSON.parse(raw) as AuthState;
         if (parsed.expiresAt > Date.now() && parsed.accessToken) {
-          const user = extractUserFromToken(parsed.accessToken) ?? parsed.user ?? null;
+          const user =
+            extractUserFromToken(parsed.accessToken) ?? parsed.user ?? null;
           setState({ ...parsed, user });
         } else {
           sessionStorage.removeItem(STORAGE_KEY);
@@ -170,7 +190,7 @@ export function AuthProvider({ children }: Props) {
       persistState(authState);
       scheduleRefresh(authState);
     },
-    [persistState, scheduleRefresh],
+    [persistState, scheduleRefresh]
   );
 
   const login = useCallback(
@@ -178,7 +198,7 @@ export function AuthProvider({ children }: Props) {
       const tokens = await loginRequest(tenantId, { email, password });
       updateState(tenantId, tokens);
     },
-    [updateState],
+    [updateState]
   );
 
   const logout = useCallback(async () => {
@@ -227,7 +247,7 @@ export function AuthProvider({ children }: Props) {
       logout,
       refresh,
     }),
-    [state, loading, login, logout, refresh],
+    [state, loading, login, logout, refresh]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -16,9 +16,7 @@ class FinancialSettingsRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_tenant_id(
-        self, tenant_id: UUID | str
-    ) -> FinancialSettings | None:
+    def get_by_tenant_id(self, tenant_id: UUID | str) -> FinancialSettings | None:
         tenant_uuid = self._normalize_tenant_id(tenant_id)
         return (
             self.db.query(FinancialSettings)

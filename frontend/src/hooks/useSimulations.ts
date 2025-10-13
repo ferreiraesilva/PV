@@ -1,7 +1,10 @@
 import { FormEvent, useMemo, useState } from 'react';
 
 import { createSimulation } from '../api/simulations';
-import type { SimulationBatchRequest, SimulationBatchResponse } from '../api/types';
+import type {
+  SimulationBatchRequest,
+  SimulationBatchResponse,
+} from '../api/types';
 import { useAuth } from './useAuth';
 import { PlanFormState, usePlansState } from './usePlansState';
 
@@ -41,7 +44,9 @@ const createPlanState = (index: number): PlanFormState => ({
 
 export const useSimulations = () => {
   const { tenantId, accessToken } = useAuth();
-  const { plans, setPlans, ...planActions } = usePlansState([createPlanState(0)]);
+  const { plans, setPlans, ...planActions } = usePlansState([
+    createPlanState(0),
+  ]);
   const [result, setResult] = useState<SimulationBatchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -49,13 +54,13 @@ export const useSimulations = () => {
   const canRemovePlan = useMemo(() => plans.length > 1, [plans.length]);
 
   const addPlan = () => {
-    setPlans(current => [...current, createPlanState(current.length)]);
+    setPlans((current) => [...current, createPlanState(current.length)]);
     setResult(null);
   };
 
   const removePlan = (planIndex: number) => {
     if (!canRemovePlan) return;
-    setPlans(current => current.filter((_, index) => index !== planIndex));
+    setPlans((current) => current.filter((_, index) => index !== planIndex));
     setResult(null);
   };
 
@@ -67,28 +72,40 @@ export const useSimulations = () => {
       setError('Faça login para enviar simulações.');
       return;
     }
-    if (!plans.length || plans.some(p => p.installments.length === 0)) {
+    if (!plans.length || plans.some((p) => p.installments.length === 0)) {
       setError('Inclua pelo menos um plano com uma parcela para simular.');
       return;
     }
 
     // Validação de nomes de planos duplicados (ignorando nomes vazios)
-    const planLabels = plans.map(p => p.label.trim()).filter(label => label !== '');
+    const planLabels = plans
+      .map((p) => p.label.trim())
+      .filter((label) => label !== '');
     if (planLabels.length > new Set(planLabels).size) {
-      setError('Não são permitidos planos com nomes duplicados. Por favor, ajuste os nomes e tente novamente.');
+      setError(
+        'Não são permitidos planos com nomes duplicados. Por favor, ajuste os nomes e tente novamente.'
+      );
       return;
     }
 
-    const getMonthlyDecimalRate = (rate: number, period: 'monthly' | 'annual'): number => {
+    const getMonthlyDecimalRate = (
+      rate: number,
+      period: 'monthly' | 'annual'
+    ): number => {
       const decimalRate = rate / 100;
-      return period === 'monthly' ? decimalRate : Math.pow(1 + decimalRate, 1 / 12) - 1;
+      return period === 'monthly'
+        ? decimalRate
+        : Math.pow(1 + decimalRate, 1 / 12) - 1;
     };
 
     const payload: SimulationBatchRequest = {
-      plans: plans.map(plan => ({
+      plans: plans.map((plan) => ({
         ...plan,
         product_code: plan.productCode.trim() || undefined,
-        discount_rate: getMonthlyDecimalRate(plan.discountRate, plan.discountRatePeriod),
+        discount_rate: getMonthlyDecimalRate(
+          plan.discountRate,
+          plan.discountRatePeriod
+        ),
         adjustment: plan.adjustmentIndex
           ? {
               base_date: plan.baseDate,
@@ -112,5 +129,15 @@ export const useSimulations = () => {
     }
   };
 
-  return { ...planActions, plans, result, error, submitting, canRemovePlan, addPlan, removePlan, handleSubmit };
+  return {
+    ...planActions,
+    plans,
+    result,
+    error,
+    submitting,
+    canRemovePlan,
+    addPlan,
+    removePlan,
+    handleSubmit,
+  };
 };

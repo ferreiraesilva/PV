@@ -1,4 +1,4 @@
-﻿﻿import { PageHeader } from '../components/PageHeader';
+﻿import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useSimulations } from '../hooks/useSimulations';
 import type { SimulationOutcome } from '../api/types';
@@ -35,7 +35,9 @@ export default function SimulationsPage() {
   }
 
   const renderOutcomeRow = (item: SimulationOutcome, index: number) => {
-    const label = item.label ?? (item.source === 'template' ? 'Plano padronizado' : `Plano ${index + 1}`);
+    const label =
+      item.label ??
+      (item.source === 'template' ? 'Plano padronizado' : `Plano ${index + 1}`);
     const product = item.product_code ?? '—';
     const key = `${item.source}-${item.template_id ?? item.plan_key ?? index}`;
 
@@ -48,7 +50,11 @@ export default function SimulationsPage() {
         <td>{label}</td>
         <td>{product}</td>
         <td>{formatCurrency(result.present_value)}</td>
-        <td>{formatCurrency(result.present_value_adjusted ?? result.present_value)}</td>
+        <td>
+          {formatCurrency(
+            result.present_value_adjusted ?? result.present_value
+          )}
+        </td>
         <td>{formatCurrency(item.result.future_value)}</td>
         <td>{formatCurrency(item.result.payment)}</td>
         <td>{formatCurrency(item.result.average_installment)}</td>
@@ -99,7 +105,9 @@ export default function SimulationsPage() {
                   type="text"
                   value={plan.label}
                   maxLength={64}
-                  onChange={(event) => updatePlanField(planIndex, 'label', event.target.value)}
+                  onChange={(event) =>
+                    updatePlanField(planIndex, 'label', event.target.value)
+                  }
                   placeholder="Ex.: Oferta especial"
                 />
               </div>
@@ -110,34 +118,58 @@ export default function SimulationsPage() {
                   type="text"
                   value={plan.productCode}
                   maxLength={128}
-                  onChange={(event) => updatePlanField(planIndex, 'productCode', event.target.value)}
+                  onChange={(event) =>
+                    updatePlanField(
+                      planIndex,
+                      'productCode',
+                      event.target.value
+                    )
+                  }
                   placeholder="Ex.: APTO-101"
                 />
-                <small>Informe para comparar com o plano padronizado correspondente.</small>
+                <small>
+                  Informe para comparar com o plano padronizado correspondente.
+                </small>
               </div>
             </div>
             <div className="grid three">
               <div className="form-field">
-                <label htmlFor={`principal-${plan.key}`}>Valor total (principal)</label>
+                <label htmlFor={`principal-${plan.key}`}>
+                  Valor total (principal)
+                </label>
                 <input
                   id={`principal-${plan.key}`}
                   type="number"
                   min="0"
                   step="0.01"
                   value={plan.principal}
-                  onChange={(event) => updatePlanField(planIndex, 'principal', event.target.valueAsNumber || 0)}
+                  onChange={(event) =>
+                    updatePlanField(
+                      planIndex,
+                      'principal',
+                      event.target.valueAsNumber || 0
+                    )
+                  }
                 />
               </div>
               <div className="form-field-group">
                 <div className="form-field">
-                  <label htmlFor={`discount-${plan.key}`}>Taxa de desconto (%)</label>
+                  <label htmlFor={`discount-${plan.key}`}>
+                    Taxa de desconto (%)
+                  </label>
                   <input
                     id={`discount-${plan.key}`}
                     type="number"
                     min="0"
                     step="0.01"
                     value={plan.discountRate}
-                    onChange={(event) => updatePlanField(planIndex, 'discountRate', event.target.valueAsNumber || 0)}
+                    onChange={(event) =>
+                      updatePlanField(
+                        planIndex,
+                        'discountRate',
+                        event.target.valueAsNumber || 0
+                      )
+                    }
                   />
                 </div>
                 <div className="form-field">
@@ -145,7 +177,13 @@ export default function SimulationsPage() {
                   <select
                     id={`period-${plan.key}`}
                     value={plan.discountRatePeriod}
-                    onChange={(event) => updatePlanField(planIndex, 'discountRatePeriod', event.target.value)}
+                    onChange={(event) =>
+                      updatePlanField(
+                        planIndex,
+                        'discountRatePeriod',
+                        event.target.value
+                      )
+                    }
                   >
                     <option value="monthly">Mensal</option>
                     <option value="annual">Anual</option>
@@ -153,22 +191,34 @@ export default function SimulationsPage() {
                 </div>
               </div>
               <div className="form-field">
-                <label htmlFor={`base-date-${plan.key}`}>Data base (reajuste)</label>
+                <label htmlFor={`base-date-${plan.key}`}>
+                  Data base (reajuste)
+                </label>
                 <input
                   id={`base-date-${plan.key}`}
                   type="date"
                   value={plan.baseDate}
-                  onChange={(event) => updatePlanField(planIndex, 'baseDate', event.target.value)}
+                  onChange={(event) =>
+                    updatePlanField(planIndex, 'baseDate', event.target.value)
+                  }
                 />
               </div>
             </div>
             <div className="grid three">
               <div className="form-field">
-                <label htmlFor={`adj-index-${plan.key}`}>Índice de reajuste</label>
+                <label htmlFor={`adj-index-${plan.key}`}>
+                  Índice de reajuste
+                </label>
                 <select
                   id={`adj-index-${plan.key}`}
                   value={plan.adjustmentIndex}
-                  onChange={(event) => updatePlanField(planIndex, 'adjustmentIndex', event.target.value)}
+                  onChange={(event) =>
+                    updatePlanField(
+                      planIndex,
+                      'adjustmentIndex',
+                      event.target.value
+                    )
+                  }
                 >
                   <option value="">Nenhum</option>
                   <option value="INCC">INCC</option>
@@ -178,25 +228,41 @@ export default function SimulationsPage() {
                 </select>
               </div>
               <div className="form-field">
-                <label htmlFor={`adj-period-${plan.key}`}>Periodicidade do reajuste</label>
+                <label htmlFor={`adj-period-${plan.key}`}>
+                  Periodicidade do reajuste
+                </label>
                 <select
                   id={`adj-period-${plan.key}`}
                   value={plan.adjustmentPeriodicity}
-                  onChange={(event) => updatePlanField(planIndex, 'adjustmentPeriodicity', event.target.value)}
+                  onChange={(event) =>
+                    updatePlanField(
+                      planIndex,
+                      'adjustmentPeriodicity',
+                      event.target.value
+                    )
+                  }
                 >
                   <option value="monthly">Mensal</option>
                   <option value="anniversary">Aniversário</option>
                 </select>
               </div>
               <div className="form-field">
-                <label htmlFor={`adj-addon-${plan.key}`}>Acréscimo ao índice (%)</label>
+                <label htmlFor={`adj-addon-${plan.key}`}>
+                  Acréscimo ao índice (%)
+                </label>
                 <input
                   id={`adj-addon-${plan.key}`}
                   type="number"
                   min="0"
                   step="0.01"
                   value={plan.adjustmentAddonRate}
-                  onChange={(event) => updatePlanField(planIndex, 'adjustmentAddonRate', event.target.valueAsNumber || 0)}
+                  onChange={(event) =>
+                    updatePlanField(
+                      planIndex,
+                      'adjustmentAddonRate',
+                      event.target.valueAsNumber || 0
+                    )
+                  }
                 />
               </div>
             </div>
@@ -219,7 +285,12 @@ export default function SimulationsPage() {
                             type="date"
                             value={item.due_date}
                             onChange={(event) =>
-                              updateInstallment(planIndex, installmentIndex, 'due_date', event.target.value)
+                              updateInstallment(
+                                planIndex,
+                                installmentIndex,
+                                'due_date',
+                                event.target.value
+                              )
                             }
                           />
                         </td>
@@ -230,12 +301,27 @@ export default function SimulationsPage() {
                             step="0.01"
                             value={item.amount}
                             onChange={(event) =>
-                              updateInstallment(planIndex, installmentIndex, 'amount', event.target.valueAsNumber || 0)
+                              updateInstallment(
+                                planIndex,
+                                installmentIndex,
+                                'amount',
+                                event.target.valueAsNumber || 0
+                              )
                             }
                           />
                         </td>
                         <td>
-                          <button type="button" className="remove" onClick={() => removeInstallment(planIndex, installmentIndex)} aria-label="Remover parcela" disabled={plan.installments.length === 1}>×</button>
+                          <button
+                            type="button"
+                            className="remove"
+                            onClick={() =>
+                              removeInstallment(planIndex, installmentIndex)
+                            }
+                            aria-label="Remover parcela"
+                            disabled={plan.installments.length === 1}
+                          >
+                            ×
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -254,7 +340,9 @@ export default function SimulationsPage() {
         <section className="card simulation-result">
           <header>
             <h2>Resultado comparativo</h2>
-            <span className="badge">{result.outcomes.length} combinação(ões)</span>
+            <span className="badge">
+              {result.outcomes.length} combinação(ões)
+            </span>
           </header>
           <div className="table-responsive">
             <table>

@@ -7,17 +7,20 @@ import './DashboardPage.css';
 const ACTIONS = [
   {
     title: 'Simulações financeiras',
-    description: 'Compare planos de pagamento e visualize métricas de PV, PMT e FV com poucos cliques.',
+    description:
+      'Compare planos de pagamento e visualize métricas de PV, PMT e FV com poucos cliques.',
     to: '/simulations',
   },
   {
     title: 'Valuation de carteira',
-    description: 'Projete múltiplos cenários de risco com base nas probabilidades de default e cancelamento.',
+    description:
+      'Projete múltiplos cenários de risco com base nas probabilidades de default e cancelamento.',
     to: '/valuations',
   },
   {
     title: 'Benchmarking',
-    description: 'Carregue datasets anonimizados e gere comparativos agregados por segmento e região.',
+    description:
+      'Carregue datasets anonimizados e gere comparativos agregados por segmento e região.',
     to: '/benchmarking',
   },
   {
@@ -28,7 +31,8 @@ const ACTIONS = [
   },
   {
     title: 'Auditoria',
-    description: 'Pesquise logs imutáveis para investigar ações por request, usuário e recurso.',
+    description:
+      'Pesquise logs imutáveis para investigar ações por request, usuário e recurso.',
     to: '/audit',
   },
 ];
@@ -51,11 +55,15 @@ export default function DashboardPage() {
           </div>
           <div>
             <span className="label">Autenticação</span>
-            <p className="value">Token JWT armazenado com refresh automático.</p>
+            <p className="value">
+              Token JWT armazenado com refresh automático.
+            </p>
           </div>
           <div>
             <span className="label">Ambiente API</span>
-            <p className="value">{import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/v1'}</p>
+            <p className="value">
+              {import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/v1'}
+            </p>
           </div>
         </div>
       </section>
