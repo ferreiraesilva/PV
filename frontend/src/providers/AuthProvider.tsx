@@ -4,16 +4,25 @@ import { REFRESH_THRESHOLD_MS } from '../api/config';
 import { login as loginRequest, logout as logoutRequest, refresh as refreshRequest } from '../api/auth';
 import type { AuthTokens } from '../api/auth';
 
+interface AuthUser {
+  id: string;
+  tenantId: string;
+  roles: string[];
+}
+
 interface AuthState {
   tenantId: string;
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+  user: AuthUser | null;
 }
 
 interface AuthContextValue {
   tenantId: string | null;
   accessToken: string | null;
+  user: AuthUser | null;
+  roles: string[];
   isAuthenticated: boolean;
   loading: boolean;
   login: (tenantId: string, email: string, password: string) => Promise<void>;
@@ -22,6 +31,60 @@ interface AuthContextValue {
 }
 
 const STORAGE_KEY = 'safv.auth.state';
+
+function decodeBase64Url(payload: string): string {
+  let normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = normalized.length % 4;
+  if (pad) {
+    normalized = normalized.padEnd(normalized.length + (4 - pad), '=');
+  }
+  if (typeof globalThis.atob === 'function') {
+    return globalThis.atob(normalized);
+  }
+  const globalBuffer = (globalThis as Record<string, unknown>).Buffer as | {
+    from(data: string, encoding: string): { toString(encoding: string): string };
+  }
+    | undefined;
+  if (globalBuffer) {
+    return globalBuffer.from(normalized, 'base64').toString('utf-8');
+  }
+  throw new Error('No base64 decoder available');
+}
+
+interface JwtPayload {
+  sub?: unknown;
+  tenant_id?: unknown;
+  roles?: unknown;
+}
+
+function extractUserFromToken(token: string): AuthUser | null {
+  if (!token) {
+    return null;
+  }
+  const segments = token.split('.');
+  if (segments.length < 2) {
+    return null;
+  }
+  try {
+    const decoded = decodeBase64Url(segments[1]);
+    const payload = JSON.parse(decoded) as JwtPayload;
+    const id = typeof payload.sub === 'string' ? payload.sub : null;
+    const tenantId = typeof payload.tenant_id === 'string' ? payload.tenant_id : null;
+    const rolesRaw = payload.roles;
+    const roles: string[] = Array.isArray(rolesRaw)
+      ? rolesRaw.filter((value): value is string => typeof value === 'string')
+      : typeof rolesRaw === 'string'
+        ? [rolesRaw]
+        : [];
+    if (!id || !tenantId) {
+      return null;
+    }
+    return { id, tenantId, roles };
+  } catch (error) {
+    console.warn('Failed to decode access token payload', error);
+    return null;
+  }
+}
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -48,8 +111,9 @@ export function AuthProvider({ children }: Props) {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as AuthState;
-        if (parsed.expiresAt > Date.now()) {
-          setState(parsed);
+        if (parsed.expiresAt > Date.now() && parsed.accessToken) {
+          const user = extractUserFromToken(parsed.accessToken) ?? parsed.user ?? null;
+          setState({ ...parsed, user });
         } else {
           sessionStorage.removeItem(STORAGE_KEY);
         }
@@ -90,11 +154,17 @@ export function AuthProvider({ children }: Props) {
   const updateState = useCallback(
     (tenantId: string, tokens: AuthTokens, refreshTokenOverride?: string) => {
       const refreshToken = refreshTokenOverride ?? tokens.refreshToken;
+      const user = extractUserFromToken(tokens.accessToken);
+      if (!user) {
+        console.warn('Unable to derive authenticated user from access token.');
+      }
+      const resolvedTenantId = user?.tenantId ?? tenantId;
       const authState: AuthState = {
-        tenantId,
+        tenantId: resolvedTenantId,
         accessToken: tokens.accessToken,
         refreshToken,
         expiresAt: Date.now() + tokens.expiresIn * 1000,
+        user,
       };
       setState(authState);
       persistState(authState);
@@ -149,6 +219,8 @@ export function AuthProvider({ children }: Props) {
     () => ({
       tenantId: state?.tenantId ?? null,
       accessToken: state?.accessToken ?? null,
+      user: state?.user ?? null,
+      roles: state?.user?.roles ?? [],
       isAuthenticated: !!state && state.expiresAt > Date.now(),
       loading,
       login,

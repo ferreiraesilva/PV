@@ -8,6 +8,7 @@ from app.api.routes import (
     health,
     simulations,
     valuations,
+    admin_portal,
 )
 
 api_router = APIRouter(prefix="/v1")
@@ -18,3 +19,5 @@ api_router.include_router(simulations.router)
 api_router.include_router(valuations.router)
 api_router.include_router(benchmarking.router)
 api_router.include_router(financial_index.router)
+api_router.include_router(admin_portal.superuser_router, prefix="/admin-portal")
+api_router.include_router(admin_portal.tenant_admin_router, prefix="/admin-portal")

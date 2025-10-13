@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, JSON, String, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from app.db.base import Base
 
@@ -23,4 +24,8 @@ class Tenant(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+    financial_settings = relationship(
+        "FinancialSettings", back_populates="tenant", uselist=False, cascade="all, delete-orphan"
     )

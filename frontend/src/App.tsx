@@ -9,7 +9,7 @@ import ValuationsPage from './pages/ValuationsPage';
 import BenchmarkingPage from './pages/BenchmarkingPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import AuditPage from './pages/AuditPage';
-import AdministrationPage from './pages/AdministrationPage';
+import AdminPortalPage from './pages/AdminPortalPage';
 import { AuthProvider } from './providers/AuthProvider';
 import { useAuth } from './hooks/useAuth';
 
@@ -43,7 +43,7 @@ export default function App() {
           <Route path="/benchmarking" element={<BenchmarkingPage />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/audit" element={<AuditPage />} />
-          <Route path="/admin" element={<AdministrationPage />} />
+          <Route path="/admin" element={<AdminPortalPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

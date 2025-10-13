@@ -69,7 +69,7 @@ def test_administration_flow_e2e():
 
         with TestClient(app) as client:
             plan_response = client.post(
-                "/v1/admin/plans",
+                "/v1/admin-portal/superuser/plans",
                 headers=headers,
                 json={
                     "name": "Premium",
@@ -82,7 +82,7 @@ def test_administration_flow_e2e():
             plan_id = plan_response.json()["id"]
 
             tenant_response = client.post(
-                "/v1/admin/tenants",
+                "/v1/admin-portal/superuser/tenants",
                 headers=headers,
                 json={
                     "name": "Cliente E2E",
@@ -115,7 +115,7 @@ def test_administration_flow_e2e():
 
             # attach an additional company
             companies_response = client.post(
-                f"/v1/admin/tenants/{tenant_id}/companies",
+                f"/v1/admin-portal/tenant-admin/{tenant_id}/companies",
                 headers=headers,
                 json={
                     "companies": [
@@ -137,7 +137,7 @@ def test_administration_flow_e2e():
 
             # create additional tenant user
             user_response = client.post(
-                f"/v1/t/{tenant_id}/admin/users",
+                f"/v1/admin-portal/tenant-admin/{tenant_id}/users",
                 headers=headers,
                 json={
                     "email": "analyst@clientee2e.com",
@@ -151,7 +151,7 @@ def test_administration_flow_e2e():
 
             # suspend the user
             suspend_response = client.post(
-                f"/v1/t/{tenant_id}/admin/users/{user_id}/suspend",
+                f"/v1/admin-portal/tenant-admin/{tenant_id}/users/{user_id}/suspend",
                 headers=headers,
                 json={"reason": "Auditoria"},
             )
@@ -160,7 +160,7 @@ def test_administration_flow_e2e():
 
             # reinstate and reactivate the user
             reinstate_response = client.post(
-                f"/v1/t/{tenant_id}/admin/users/{user_id}/reinstate",
+                f"/v1/admin-portal/tenant-admin/{tenant_id}/users/{user_id}/reinstate",
                 headers=headers,
                 json={"reactivate": True},
             )
@@ -170,7 +170,7 @@ def test_administration_flow_e2e():
 
             # password reset flow
             reset_token_response = client.post(
-                f"/v1/t/{tenant_id}/admin/users/{user_id}/reset-password",
+                f"/v1/admin-portal/tenant-admin/{tenant_id}/users/{user_id}/reset-password",
                 headers=headers,
             )
             assert reset_token_response.status_code == 200
@@ -178,7 +178,7 @@ def test_administration_flow_e2e():
             assert token_payload["token"]
 
             confirm_response = client.post(
-                f"/v1/t/{tenant_id}/admin/users/{user_id}/reset-password/confirm",
+                f"/v1/admin-portal/tenant-admin/{tenant_id}/users/{user_id}/reset-password/confirm",
                 headers=headers,
                 json={"token": token_payload["token"], "newPassword": "NovaSenha123"},
             )
@@ -187,7 +187,7 @@ def test_administration_flow_e2e():
 
             # verify users listing reflects updates
             users_listing = client.get(
-                f"/v1/t/{tenant_id}/admin/users",
+                f"/v1/admin-portal/tenant-admin/{tenant_id}/users",
                 headers=headers,
             )
             assert users_listing.status_code == 200

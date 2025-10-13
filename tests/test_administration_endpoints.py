@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.api.routes.administration import get_administration_service
+from app.api.routes.admin_portal import get_administration_service
 from app.core.roles import SUPERADMIN_ROLE
 from tests.conftest import TENANT_ID, app
 
@@ -20,7 +20,7 @@ def _clear_overrides():
 
 def test_create_plan_requires_superadmin(client, auth_headers, _clear_overrides):
     response = client.post(
-        "/v1/admin/plans",
+        "/v1/admin-portal/superuser/plans",
         headers=auth_headers,
         json={
             "name": "Enterprise",
@@ -54,7 +54,7 @@ def test_create_plan_returns_payload(client, superadmin_headers, _clear_override
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
     response = client.post(
-        "/v1/admin/plans",
+        "/v1/admin-portal/superuser/plans",
         headers=superadmin_headers,
         json={
             "name": "Enterprise",
@@ -100,7 +100,7 @@ def test_list_plans_passes_include_flag(client, superadmin_headers, _clear_overr
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
     response = client.get(
-        "/v1/admin/plans?include_inactive=true", headers=superadmin_headers
+        "/v1/admin-portal/superuser/plans?include_inactive=true", headers=superadmin_headers
     )
 
     assert response.status_code == 200
@@ -135,7 +135,7 @@ def test_update_plan_forwards_payload(client, superadmin_headers, _clear_overrid
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
     response = client.patch(
-        f"/v1/admin/plans/{plan_id}",
+        f"/v1/admin-portal/superuser/plans/{plan_id}",
         headers=superadmin_headers,
         json={"isActive": False, "maxUsers": 99},
     )
@@ -180,7 +180,7 @@ def test_attach_companies_maps_payload(client, superadmin_headers, _clear_overri
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
     response = client.post(
-        f"/v1/admin/tenants/{tenant_id}/companies",
+        f"/v1/admin-portal/tenant-admin/{tenant_id}/companies",
         headers=superadmin_headers,
         json={
             "companies": [
@@ -228,7 +228,7 @@ def test_create_user_forwards_payload(client, superadmin_headers, _clear_overrid
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
     response = client.post(
-        f"/v1/t/{TENANT_ID}/admin/users",
+        f"/v1/admin-portal/tenant-admin/{TENANT_ID}/users",
         headers=superadmin_headers,
         json={
             "email": "user@example.com",
@@ -277,7 +277,7 @@ def test_suspend_user_invokes_service(client, superadmin_headers, _clear_overrid
     user_id = uuid.uuid4()
 
     response = client.post(
-        f"/v1/t/{TENANT_ID}/admin/users/{user_id}/suspend",
+        f"/v1/admin-portal/tenant-admin/{TENANT_ID}/users/{user_id}/suspend",
         headers=superadmin_headers,
         json={"reason": "fraud"},
     )
@@ -309,7 +309,7 @@ def test_initiate_password_reset_returns_token(
     user_id = uuid.uuid4()
 
     response = client.post(
-        f"/v1/t/{TENANT_ID}/admin/users/{user_id}/reset-password",
+        f"/v1/admin-portal/tenant-admin/{TENANT_ID}/users/{user_id}/reset-password",
         headers=superadmin_headers,
     )
 
@@ -348,7 +348,7 @@ def test_confirm_password_reset_calls_service(
     user_id = uuid.uuid4()
 
     response = client.post(
-        f"/v1/t/{TENANT_ID}/admin/users/{user_id}/reset-password/confirm",
+        f"/v1/admin-portal/tenant-admin/{TENANT_ID}/users/{user_id}/reset-password/confirm",
         headers=superadmin_headers,
         json={"token": "abc", "newPassword": "Secret123"},
     )
@@ -362,7 +362,7 @@ def test_create_payment_plan_template_requires_admin(
     client, auth_headers, _clear_overrides
 ):
     response = client.post(
-        f"/v1/t/{TENANT_ID}/admin/payment-plans",
+        f"/v1/admin-portal/tenant-admin/{TENANT_ID}/payment-plans",
         headers=auth_headers,
         json={
             "productCode": "vip",
@@ -418,7 +418,7 @@ def test_create_payment_plan_template_returns_payload(
         ],
     }
     response = client.post(
-        f"/v1/t/{TENANT_ID}/admin/payment-plans",
+        f"/v1/admin-portal/tenant-admin/{TENANT_ID}/payment-plans",
         headers=superadmin_headers,
         json=payload,
     )
@@ -461,7 +461,7 @@ def test_list_payment_plan_templates_returns_collection(
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
     response = client.get(
-        f"/v1/t/{TENANT_ID}/admin/payment-plans",
+        f"/v1/admin-portal/tenant-admin/{TENANT_ID}/payment-plans",
         headers=superadmin_headers,
     )
     assert response.status_code == 200
@@ -508,7 +508,7 @@ def test_update_payment_plan_template_calls_service(
     app.dependency_overrides[get_administration_service] = lambda: StubService()
 
     response = client.patch(
-        f"/v1/t/{TENANT_ID}/admin/payment-plans/{template_id}",
+        f"/v1/admin-portal/tenant-admin/{TENANT_ID}/payment-plans/{template_id}",
         headers=superadmin_headers,
         json={
             "name": "Plano Renovado",

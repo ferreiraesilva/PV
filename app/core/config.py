@@ -38,6 +38,15 @@ class Settings(BaseSettings):
         60, ge=1, description="Window size in seconds for rate limiting"
     )
 
+    # Financial settings defaults
+    periods_per_year: int = Field(12, description="Default number of periods per year")
+    default_multiplier: float = Field(
+        1.0, description="Default multiplier for default probability"
+    )
+    cancellation_multiplier: float = Field(
+        1.0, description="Default multiplier for cancellation probability"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

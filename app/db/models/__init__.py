@@ -1,5 +1,6 @@
 from app.db.models.audit_log import AuditLog
 from app.db.models.commercial_plan import CommercialPlan
+from app.db.models.financial_settings import FinancialSettings
 from app.db.models.payment_plan_installment import PaymentPlanInstallment
 from app.db.models.payment_plan_template import PaymentPlanTemplate
 from app.db.models.refresh_token import RefreshToken
@@ -11,6 +12,7 @@ from app.db.models.user import User
 __all__ = [
     "AuditLog",
     "CommercialPlan",
+    "FinancialSettings",
     "PaymentPlanInstallment",
     "PaymentPlanTemplate",
     "RefreshToken",

@@ -4,7 +4,7 @@ import secrets
 from decimal import Decimal
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Sequence
+from typing import Any, Sequence
 from uuid import UUID
 
 from sqlalchemy import func, select, text
@@ -20,6 +20,7 @@ from app.core.roles import (
 from app.core.security import get_password_hash, verify_password
 from app.db.models import (
     CommercialPlan,
+    FinancialSettings,
     PaymentPlanInstallment,
     PaymentPlanTemplate,
     Tenant,
@@ -446,6 +447,90 @@ class AdministrationService:
 
         self.session.refresh(company)
         return company
+
+    # --------- Financial settings ---------
+    def update_financial_settings(
+        self,
+        acting_user: ActingUser,
+        tenant_id: UUID,
+        updates: dict[str, Any],
+    ) -> FinancialSettings:
+        self._require_roles(acting_user, {SUPERADMIN_ROLE, TENANT_ADMIN_ROLE})
+        if not updates:
+            raise BusinessRuleViolation("No financial settings fields provided")
+
+        tenant = self._get_tenant(tenant_id)
+        self._assert_tenant_scope(acting_user, tenant.id)
+
+        allowed_fields = {
+            "periods_per_year",
+            "default_multiplier",
+            "cancellation_multiplier",
+        }
+        unknown = set(updates).difference(allowed_fields)
+        if unknown:
+            raise BusinessRuleViolation(
+                f"Unknown financial settings fields: {sorted(unknown)}"
+            )
+
+        normalized: dict[str, Any] = {}
+        if "periods_per_year" in updates:
+            value = updates["periods_per_year"]
+            if value is None:
+                normalized["periods_per_year"] = None
+            else:
+                if not isinstance(value, int):
+                    raise BusinessRuleViolation(
+                        "periods_per_year must be an integer value"
+                    )
+                if value < 1:
+                    raise BusinessRuleViolation(
+                        "periods_per_year must be greater than zero"
+                    )
+                normalized["periods_per_year"] = value
+
+        for field_name in ("default_multiplier", "cancellation_multiplier"):
+            if field_name not in updates:
+                continue
+            value = updates[field_name]
+            if value is None:
+                normalized[field_name] = None
+                continue
+            try:
+                decimal_value = self._to_decimal(value)
+            except (ArithmeticError, ValueError, TypeError):
+                raise BusinessRuleViolation(
+                    f"{field_name.replace('_', ' ')} must be a numeric value"
+                ) from None
+            if decimal_value < Decimal("0"):
+                raise BusinessRuleViolation(
+                    f"{field_name.replace('_', ' ')} must be greater than or equal to zero"
+                )
+            normalized[field_name] = decimal_value
+
+        if not normalized:
+            raise BusinessRuleViolation("No financial settings fields provided")
+
+        settings = tenant.financial_settings
+        if settings is None:
+            settings = FinancialSettings(tenant_id=tenant.id)
+            tenant.financial_settings = settings
+            self.session.add(settings)
+
+        for attr, value in normalized.items():
+            setattr(settings, attr, value)
+
+        try:
+            self.session.add(settings)
+            self._commit()
+        except IntegrityError as exc:  # pragma: no cover - database guard
+            self.session.rollback()
+            raise BusinessRuleViolation(
+                "Financial settings update violates database constraints"
+            ) from exc
+
+        self.session.refresh(settings)
+        return settings
 
     # --------- Plan management ---------
     def create_commercial_plan(

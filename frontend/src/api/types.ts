@@ -252,3 +252,42 @@ export interface PasswordResetTokenPayload {
   token: string;
   expiresAt: string;
 }
+
+export interface FinancialSettings {
+  tenantId: string;
+  periodsPerYear: number | null;
+  defaultMultiplier: number | null;
+  cancellationMultiplier: number | null;
+}
+
+export interface PaymentPlanTemplateInstallment {
+  id: string;
+  period: number;
+  amount: number;
+}
+
+export interface PaymentPlanTemplate {
+  id: string;
+  tenantId: string;
+  productCode: string;
+  name?: string | null;
+  description?: string | null;
+  principal: number;
+  discountRate: number;
+  metadata?: Record<string, unknown> | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  installments: PaymentPlanTemplateInstallment[];
+}
+
+export interface TenantPlanSubscription {
+  id: string;
+  tenantId: string;
+  planId: string;
+  isActive: boolean;
+  activatedAt: string;
+  deactivatedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
