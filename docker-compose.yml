@@ -77,7 +77,10 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      - app
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_started
 
   frontend:
     profiles: ["prod"]
@@ -89,6 +92,9 @@ services:
     expose:
       - "4173"
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   nginx:
     profiles: ["prod"]
@@ -112,6 +118,8 @@ services:
         condition: service_started
       frontend:
         condition: service_started
+      postgres:
+        condition: service_healthy
     volumes:
       - certbot-www:/var/www/certbot
       - certbot-etc:/etc/letsencrypt

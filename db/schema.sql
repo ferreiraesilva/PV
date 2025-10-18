@@ -95,15 +95,18 @@ CREATE UNIQUE INDEX uq_financial_indices_code_global ON financial_indices (code)
 
 CREATE TABLE financial_index_values (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    financial_index_id UUID NOT NULL REFERENCES financial_indices(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    index_code VARCHAR(32) NOT NULL,
     reference_date DATE NOT NULL,
     value NUMERIC(14,6) NOT NULL,
-    metadata JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (financial_index_id, reference_date)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, index_code, reference_date)
 );
 
-CREATE INDEX ix_financial_index_values_date ON financial_index_values (reference_date);
+CREATE INDEX ix_financial_index_values_tenant_id ON financial_index_values (tenant_id);
+CREATE INDEX ix_financial_index_values_index_code ON financial_index_values (index_code);
+CREATE INDEX ix_financial_index_values_reference_date ON financial_index_values (reference_date);
 
 CREATE TABLE simulation_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

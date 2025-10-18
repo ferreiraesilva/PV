@@ -18,17 +18,11 @@ const mapTokenPair = (payload: TokenPairResponse): AuthTokens => ({
   expiresIn: payload.expires_in,
 });
 
-export async function login(
-  tenantId: string,
-  payload: LoginPayload
-): Promise<AuthTokens> {
-  const response = await apiFetch<TokenPairResponse>(
-    `/t/${encodeURIComponent(tenantId)}/login`,
-    {
-      method: 'POST',
-      body: payload,
-    }
-  );
+export async function login(payload: LoginPayload): Promise<AuthTokens> {
+  const response = await apiFetch<TokenPairResponse>('/login', {
+    method: 'POST',
+    body: payload,
+  });
   return mapTokenPair(response);
 }
 

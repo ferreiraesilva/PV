@@ -39,7 +39,17 @@ FROM permissions perm
 WHERE perm.code IN ('manage_users', 'view_audit_logs', 'manage_financial_models')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
-INSERT INTO users (id, tenant_id, email, hashed_password, full_name, is_active, is_superuser, roles)
+INSERT INTO users (
+    id,
+    tenant_id,
+    email,
+    hashed_password,
+    full_name,
+    is_active,
+    is_superuser,
+    is_suspended,
+    roles
+)
 VALUES (
     '44444444-4444-4444-4444-444444444444',
     '11111111-1111-1111-1111-111111111111',
@@ -48,12 +58,14 @@ VALUES (
     'Default SAFV Admin',
     TRUE,
     TRUE,
+    FALSE,
     jsonb_build_array('superadm', 'tenantadmin')
 )
 ON CONFLICT (tenant_id, email) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     is_active = TRUE,
     is_superuser = TRUE,
+    is_suspended = FALSE,
     roles = EXCLUDED.roles,
     updated_at = NOW();
 

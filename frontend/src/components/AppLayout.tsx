@@ -1,16 +1,16 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import type { ReactNode } from 'react';
+﻿import { NavLink, Outlet } from "react-router-dom";
+import type { ReactNode } from "react";
 
-import { useAuth } from '../hooks/useAuth';
-import './AppLayout.css';
+import { useAuth } from "../hooks/useAuth";
+import "./AppLayout.css";
 
-const NAV_ITEMS = [
-  { to: '/', label: 'Visão geral', exact: true },
-  { to: '/simulations', label: 'Simulações' },
-  { to: '/valuations', label: 'Valuation' },
-  { to: '/benchmarking', label: 'Benchmarking' },
-  { to: '/recommendations', label: 'Recomendações' },
-  { to: '/audit', label: 'Auditoria' },
+const BASE_NAV_ITEMS = [
+  { to: "/", label: "Visao geral" },
+  { to: "/simulations", label: "Simulacoes" },
+  { to: "/valuations", label: "Valuation" },
+  { to: "/benchmarking", label: "Benchmarking" },
+  { to: "/recommendations", label: "Recomendacoes" },
+  { to: "/audit", label: "Auditoria" },
 ];
 
 interface AppLayoutProps {
@@ -19,7 +19,17 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ onLogout, children }: AppLayoutProps) {
-  const { tenantId } = useAuth();
+  const { tenantId, roles } = useAuth();
+
+  const isSuperuser = roles.includes("superadmin");
+  const isTenantAdmin = isSuperuser || roles.includes("tenant_admin");
+
+  const navItems = [...BASE_NAV_ITEMS];
+
+  if (isTenantAdmin) {
+    navItems.push({ to: "/indexes", label: "Indices" });
+    navItems.push({ to: "/admin", label: "Administracao" });
+  }
 
   return (
     <div className="app-shell">
@@ -30,11 +40,7 @@ export function AppLayout({ onLogout, children }: AppLayoutProps) {
         </div>
         <div className="header-actions">
           {tenantId && <span className="tenant-pill">Tenant: {tenantId}</span>}
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => onLogout()}
-          >
+          <button type="button" className="secondary" onClick={() => onLogout()}>
             Sair
           </button>
         </div>
@@ -42,14 +48,12 @@ export function AppLayout({ onLogout, children }: AppLayoutProps) {
       <div className="app-body">
         <aside className="sidebar" aria-label="Menu principal">
           <nav>
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  `nav-link${isActive ? ' active' : ''}`
-                }
+                end={item.to === "/"}
+                className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
               >
                 {item.label}
               </NavLink>

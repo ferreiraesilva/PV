@@ -25,6 +25,11 @@ class UserRepository:
         stmt = select(User).where(User.id == user_id)
         return self.session.execute(stmt).scalar_one_or_none()
 
+    def get_by_email_unscoped(self, email: str) -> list[User]:
+        normalized = self._normalize_email(email)
+        stmt = select(User).where(User.email == normalized)
+        return self.session.execute(stmt).scalars().all()
+
     def count_active_by_tenant(self, tenant_id: UUID | str) -> int:
         stmt = (
             select(func.count())

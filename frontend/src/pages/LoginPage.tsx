@@ -7,7 +7,6 @@ import './LoginPage.css';
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isAuthenticated, loading } = useAuth();
-  const [tenantId, setTenantId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -20,13 +19,13 @@ export default function LoginPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!tenantId || !email || !password) {
+    if (!email || !password) {
       setError('Preencha todos os campos para continuar.');
       return;
     }
     try {
       setSubmitting(true);
-      await login(tenantId.trim(), email.trim(), password);
+      await login(email.trim(), password);
       navigate('/', { replace: true });
     } catch (err) {
       const detail = (err as Error).message ?? 'Falha ao autenticar.';
@@ -42,22 +41,10 @@ export default function LoginPage() {
         <header>
           <h1>Entrar no SAFV</h1>
           <p>
-            Informe o tenant e suas credenciais para acessar as simulações e
-            dashboards.
+            Informe suas credenciais para acessar as simulações e dashboards.
           </p>
         </header>
         <form className="stack" onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label htmlFor="tenant">Tenant ID</label>
-            <input
-              id="tenant"
-              value={tenantId}
-              onChange={(event) => setTenantId(event.target.value)}
-              placeholder="d4f6a9cf-..."
-              autoComplete="off"
-            />
-            <small>Use o GUID do tenant provisionado no backend.</small>
-          </div>
           <div className="form-field">
             <label htmlFor="email">E-mail</label>
             <input

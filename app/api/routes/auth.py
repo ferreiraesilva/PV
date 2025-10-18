@@ -21,6 +21,7 @@ from app.db.repositories.user import UserRepository
 from app.db.session import get_db
 
 router = APIRouter(tags=["Auth"])
+unscoped_router = APIRouter(tags=["Auth"])
 settings = get_settings()
 
 
@@ -175,3 +176,53 @@ def logout(
 
     refresh_repo.revoke(stored_token)
     return None
+
+
+@unscoped_router.post("/login", response_model=TokenPair)
+def login_unscoped(
+    payload: LoginRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> TokenPair:
+    repository = UserRepository(db)
+    users = repository.get_by_email_unscoped(payload.email)
+    
+    user = None
+    for u in users:
+        if verify_password(payload.password, u.hashed_password):
+            user = u
+            break
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive"
+        )
+    if getattr(user, "is_suspended", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account is suspended"
+        )
+
+    roles = _normalize_token_roles(getattr(user, "roles", None), user.is_superuser)
+    access_token = create_access_token(
+        subject=str(user.id),
+        extra_claims={"tenant_id": str(user.tenant_id), "roles": roles},
+    )
+
+    refresh_repo = RefreshTokenRepository(db)
+    refresh_token = _issue_refresh_token(
+        refresh_repo,
+        user_id=user.id,
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None,
+    )
+
+    return TokenPair(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.access_token_expire_minutes * 60,
+    )

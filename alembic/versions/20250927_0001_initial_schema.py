@@ -233,27 +233,44 @@ def upgrade() -> None:
             primary_key=True,
             server_default=sa.text("uuid_generate_v4()"),
         ),
-        sa.Column("financial_index_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("index_code", sa.String(length=32), nullable=False),
         sa.Column("reference_date", sa.Date(), nullable=False),
         sa.Column("value", sa.Numeric(14, 6), nullable=False),
-        sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),
             nullable=False,
             server_default=sa.text("NOW()"),
         ),
-        sa.ForeignKeyConstraint(
-            ["financial_index_id"], ["financial_indices.id"], ondelete="CASCADE"
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
         ),
+        sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.UniqueConstraint(
-            "financial_index_id",
+            "tenant_id",
+            "index_code",
             "reference_date",
-            name="uq_financial_index_values_unique",
+            name="uq_financial_index_value",
         ),
     )
     op.create_index(
-        "ix_financial_index_values_date", "financial_index_values", ["reference_date"]
+        "ix_financial_index_values_tenant_id",
+        "financial_index_values",
+        ["tenant_id"],
+    )
+    op.create_index(
+        "ix_financial_index_values_index_code",
+        "financial_index_values",
+        ["index_code"],
+    )
+    op.create_index(
+        "ix_financial_index_values_reference_date",
+        "financial_index_values",
+        ["reference_date"],
     )
 
     op.create_table(
@@ -845,6 +862,302 @@ def upgrade() -> None:
         """
     )
 
+    # --- Merged from 20251005_0002_multi_tenant_admin ---
+    op.add_column(
+        "tenants",
+        sa.Column("is_default", sa.Boolean(), nullable=False, server_default=sa.false()),
+    )
+    op.add_column(
+        "users",
+        sa.Column(
+            "roles",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'[\"user\"]'::jsonb"),
+        ),
+    )
+
+    op.alter_column("tenants", "is_default", server_default=None)
+    op.alter_column("users", "roles", server_default=None)
+
+    op.create_table(
+        "tenant_companies",
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
+        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("legal_name", sa.String(length=255), nullable=False),
+        sa.Column("trade_name", sa.String(length=255), nullable=True),
+        sa.Column("tax_id", sa.String(length=32), nullable=False),
+        sa.Column("billing_email", sa.String(length=320), nullable=False),
+        sa.Column("billing_phone", sa.String(length=32), nullable=True),
+        sa.Column("address_line1", sa.String(length=255), nullable=False),
+        sa.Column("address_line2", sa.String(length=255), nullable=True),
+        sa.Column("city", sa.String(length=128), nullable=False),
+        sa.Column("state", sa.String(length=64), nullable=False),
+        sa.Column("zip_code", sa.String(length=20), nullable=False),
+        sa.Column(
+            "country",
+            sa.String(length=64),
+            nullable=False,
+            server_default=sa.text("'BR'"),
+        ),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
+        sa.UniqueConstraint("tenant_id", "tax_id", name="uq_tenant_companies_tax_id"),
+    )
+    op.create_index(
+        "ix_tenant_companies_tenant_id", "tenant_companies", ["tenant_id"]
+    )
+
+    op.create_table(
+        "commercial_plans",
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
+        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=False),
+        sa.Column("description", sa.String(length=500), nullable=True),
+        sa.Column("max_users", sa.Integer(), nullable=True),
+        sa.Column("price_cents", sa.Integer(), nullable=True),
+        sa.Column(
+            "currency",
+            sa.String(length=8),
+            nullable=False,
+            server_default=sa.text("'BRL'"),
+        ),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.Column(
+            "billing_cycle_months",
+            sa.Integer(),
+            nullable=False,
+            server_default=sa.text("1"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
+        sa.UniqueConstraint("tenant_id", "name", name="uq_commercial_plan_tenant_name"),
+    )
+    op.create_index("ix_commercial_plans_tenant_id", "commercial_plans", ["tenant_id"])
+
+    op.create_table(
+        "tenant_plan_subscriptions",
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("uuid_generate_v4()"),
+        ),
+        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("plan_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.Column(
+            "activated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column("deactivated_at", sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["plan_id"], ["commercial_plans.id"], ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
+    )
+    op.create_index(
+        "ix_tenant_plan_subscriptions_tenant_id",
+        "tenant_plan_subscriptions",
+        ["tenant_id"],
+    )
+    op.create_index(
+        "ix_tenant_plan_subscriptions_plan_id",
+        "tenant_plan_subscriptions",
+        ["plan_id"],
+    )
+    op.create_index(
+        "uq_tenant_plan_subscriptions_active",
+        "tenant_plan_subscriptions",
+        ["tenant_id"],
+        unique=True,
+        postgresql_where=sa.text("is_active"),
+    )
+
+    # --- Merged from 20251006_0003_administrative_lifecycle_enhancements ---
+    op.add_column(
+        "users",
+        sa.Column("is_suspended", sa.Boolean(), nullable=False, server_default=sa.false()),
+    )
+    op.add_column(
+        "users",
+        sa.Column("suspended_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.add_column(
+        "users",
+        sa.Column("suspension_reason", sa.String(length=255), nullable=True),
+    )
+    op.add_column(
+        "users",
+        sa.Column("password_reset_token_hash", sa.String(length=255), nullable=True),
+    )
+    op.add_column(
+        "users",
+        sa.Column(
+            "password_reset_token_expires_at",
+            sa.DateTime(timezone=True),
+            nullable=True,
+        ),
+    )
+    op.add_column(
+        "users",
+        sa.Column(
+            "password_reset_requested_at",
+            sa.DateTime(timezone=True),
+            nullable=True,
+        ),
+    )
+
+    op.execute("UPDATE users SET is_suspended = FALSE WHERE is_suspended IS NULL")
+    op.alter_column("users", "is_suspended", server_default=None)
+
+    op.execute(
+        """
+        UPDATE tenants
+        SET is_default = TRUE
+        WHERE id = '11111111-1111-1111-1111-111111111111'
+        """
+    )
+
+    # --- Merged from 20251006_0004_payment_plan_templates ---
+    op.create_table(
+        "payment_plan_templates",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("product_code", sa.String(length=128), nullable=False),
+        sa.Column("name", sa.String(length=255), nullable=True),
+        sa.Column("description", sa.String(length=500), nullable=True),
+        sa.Column("principal", sa.Numeric(18, 4), nullable=False),
+        sa.Column(
+            "discount_rate", sa.Numeric(10, 6), nullable=False, server_default="0"
+        ),
+        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column(
+            "is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.UniqueConstraint(
+            "tenant_id", "product_code", name="uq_payment_plan_templates_product"
+        ),
+    )
+
+    op.create_table(
+        "payment_plan_installments",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "template_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("payment_plan_templates.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("period", sa.Integer(), nullable=False),
+        sa.Column("amount", sa.Numeric(18, 4), nullable=False),
+        sa.UniqueConstraint(
+            "template_id", "period", name="uq_payment_plan_installments_period"
+        ),
+    )
+
+    # --- Merged from 20251012_0005_financial_settings ---
+    op.create_table(
+        "financial_settings",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("tenant_id", sa.UUID(), nullable=False),
+        sa.Column("periods_per_year", sa.Integer(), nullable=True),
+        sa.Column("default_multiplier", sa.Numeric(8, 4), nullable=True),
+        sa.Column("cancellation_multiplier", sa.Numeric(8, 4), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["tenant_id"],
+            ["tenants.id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id"),
+    )
+    op.create_index(
+        op.f("ix_financial_settings_id"), "financial_settings", ["id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_financial_settings_tenant_id"),
+        "financial_settings",
+        ["tenant_id"],
+        unique=True,
+    )
+
 
 def downgrade() -> None:
     op.execute(
@@ -859,6 +1172,46 @@ def downgrade() -> None:
         "DELETE FROM permissions WHERE code IN ('manage_users','view_audit_logs','manage_financial_models');"
     )
     op.execute("DELETE FROM tenants WHERE id = '11111111-1111-1111-1111-111111111111';")
+
+    # --- Revert merged migration 20251012_0005_financial_settings ---
+    op.drop_index(
+        op.f("ix_financial_settings_tenant_id"), table_name="financial_settings"
+    )
+    op.drop_index(op.f("ix_financial_settings_id"), table_name="financial_settings")
+    op.drop_table("financial_settings")
+
+    # --- Revert merged migration 20251006_0004_payment_plan_templates ---
+    op.drop_table("payment_plan_installments")
+    op.drop_table("payment_plan_templates")
+
+    # --- Revert merged migration 20251006_0003_administrative_lifecycle_enhancements ---
+    op.drop_column("users", "password_reset_requested_at")
+    op.drop_column("users", "password_reset_token_expires_at")
+    op.drop_column("users", "password_reset_token_hash")
+    op.drop_column("users", "suspension_reason")
+    op.drop_column("users", "suspended_at")
+    op.drop_column("users", "is_suspended")
+
+    # --- Revert merged migration 20251005_0002_multi_tenant_admin ---
+    op.drop_index(
+        "uq_tenant_plan_subscriptions_active", table_name="tenant_plan_subscriptions"
+    )
+    op.drop_index(
+        "ix_tenant_plan_subscriptions_plan_id", table_name="tenant_plan_subscriptions"
+    )
+    op.drop_index(
+        "ix_tenant_plan_subscriptions_tenant_id", table_name="tenant_plan_subscriptions"
+    )
+    op.drop_table("tenant_plan_subscriptions")
+
+    op.drop_index("ix_commercial_plans_tenant_id", table_name="commercial_plans")
+    op.drop_table("commercial_plans")
+
+    op.drop_index("ix_tenant_companies_tenant_id", table_name="tenant_companies")
+    op.drop_table("tenant_companies")
+
+    op.drop_column("users", "roles")
+    op.drop_column("tenants", "is_default")
 
     op.drop_index("ix_audit_logs_occurred_at", table_name="audit_logs")
     op.drop_index("ix_audit_logs_request_id", table_name="audit_logs")
@@ -905,7 +1258,16 @@ def downgrade() -> None:
     op.drop_index("ix_simulation_requests_tenant_id", table_name="simulation_requests")
     op.drop_table("simulation_requests")
 
-    op.drop_index("ix_financial_index_values_date", table_name="financial_index_values")
+    op.drop_index(
+        "ix_financial_index_values_reference_date",
+        table_name="financial_index_values",
+    )
+    op.drop_index(
+        "ix_financial_index_values_index_code", table_name="financial_index_values"
+    )
+    op.drop_index(
+        "ix_financial_index_values_tenant_id", table_name="financial_index_values"
+    )
     op.drop_table("financial_index_values")
     op.drop_index("uq_financial_indices_code_global", table_name="financial_indices")
     op.drop_table("financial_indices")

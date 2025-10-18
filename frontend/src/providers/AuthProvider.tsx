@@ -37,7 +37,7 @@ interface AuthContextValue {
   roles: string[];
   isAuthenticated: boolean;
   loading: boolean;
-  login: (tenantId: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -194,9 +194,9 @@ export function AuthProvider({ children }: Props) {
   );
 
   const login = useCallback(
-    async (tenantId: string, email: string, password: string) => {
-      const tokens = await loginRequest(tenantId, { email, password });
-      updateState(tenantId, tokens);
+    async (email: string, password: string) => {
+      const tokens = await loginRequest({ email, password });
+      updateState("", tokens);
     },
     [updateState]
   );

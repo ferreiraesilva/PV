@@ -1,23 +1,24 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+ï»¿import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 
-import { AppLayout } from './components/AppLayout';
-import { LoadingScreen } from './components/LoadingScreen';
-import DashboardPage from './pages/DashboardPage';
-import LoginPage from './pages/LoginPage';
-import SimulationsPage from './pages/SimulationsPage';
-import ValuationsPage from './pages/ValuationsPage';
-import BenchmarkingPage from './pages/BenchmarkingPage';
-import RecommendationsPage from './pages/RecommendationsPage';
-import AuditPage from './pages/AuditPage';
-import AdminPortalPage from './pages/AdminPortalPage';
-import { AuthProvider } from './providers/AuthProvider';
-import { useAuth } from './hooks/useAuth';
+import { AppLayout } from "./components/AppLayout";
+import { LoadingScreen } from "./components/LoadingScreen";
+import DashboardPage from "./pages/DashboardPage";
+import LoginPage from "./pages/LoginPage";
+import SimulationsPage from "./pages/SimulationsPage";
+import ValuationsPage from "./pages/ValuationsPage";
+import BenchmarkingPage from "./pages/BenchmarkingPage";
+import RecommendationsPage from "./pages/RecommendationsPage";
+import AuditPage from "./pages/AuditPage";
+import AdminPortalPage from "./pages/AdminPortalPage";
+import IndexManagementPage from "./pages/IndexManagementPage";
+import { AuthProvider } from "./providers/AuthProvider";
+import { useAuth } from "./hooks/useAuth";
 
 function ProtectedOutlet() {
   const { isAuthenticated, loading, logout } = useAuth();
 
   if (loading) {
-    return <LoadingScreen message="Validação de sessão" />;
+    return <LoadingScreen message="Validacao de sessao" />;
   }
 
   if (!isAuthenticated) {
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/benchmarking" element={<BenchmarkingPage />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/audit" element={<AuditPage />} />
+          <Route path="/indexes" element={<IndexManagementPage />} />
           <Route path="/admin" element={<AdminPortalPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
